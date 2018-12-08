@@ -1,9 +1,9 @@
 #ifndef QAP_CPU_QAP_H
 #define QAP_CPU_QAP_H
 
-#include "QAPDataTypes.h"
+#include "QAPInterface.h"
 
-class QAP {
+class QAP: public QAPInterface {
 private:
     Matrix<unsigned> weights;
     Matrix<unsigned> distances;
@@ -11,8 +11,7 @@ private:
 public:
     QAP(const Matrix<unsigned> &weights, const Matrix<unsigned> &distances);
 
-
-    unsigned getValue(const Permutation<unsigned> &permutation);
+    unsigned getValue(const Permutation<unsigned> &permutation) override;
 };
 
 

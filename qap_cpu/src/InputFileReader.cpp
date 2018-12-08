@@ -19,9 +19,9 @@ void InputFileReader::readInput() {
     if (!input.is_open())
         throw std::runtime_error{"Could not open file " + this->path};
 
-    unsigned instanceSize{this->readInstanceSize(input)};
-    this->weights = this->readMatrix(input, instanceSize);
-    this->distances = this->readMatrix(input, instanceSize);
+    this->instanceSize = this->readInstanceSize(input);
+    this->weights = this->readMatrix(input, this->instanceSize);
+    this->distances = this->readMatrix(input, this->instanceSize);
 }
 
 unsigned InputFileReader::readInstanceSize(std::ifstream &input) {
@@ -57,6 +57,10 @@ Matrix<unsigned> InputFileReader::createMatrix(const unsigned size) {
         matrix.push_back(std::vector<unsigned>(size));
 
     return matrix;
+}
+
+unsigned int InputFileReader::getInstanceSize() const {
+    return this->instanceSize;
 }
 
 Matrix<unsigned> InputFileReader::getWeights() const {

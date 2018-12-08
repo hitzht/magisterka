@@ -7,14 +7,29 @@ include(${PROJECT_SOURCE_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
 
 add_executable(qap_cpu
-        main.cpp
-        QAP.cpp
-        QAP.h
-        InputFileReader.cpp
-        InputFileReader.h
-        QAPDataTypes.h)
+        src/main.cpp
+        src/QAP.cpp
+        src/QAP.h
+        src/InputFileReader.cpp
+        src/InputFileReader.h
+        src/QAPDataTypes.h
+        src/EMAlgorithm.cpp
+        src/EMAlgorithm.h
+        src/QAPInterface.h
+        src/PermutationFactory.cpp
+        src/PermutationFactory.h
+        src/HammingDistance.cpp
+        src/HammingDistance.h
+        src/PMX.cpp
+        src/PMX.h
+        src/RangeGenerator.cpp
+        src/RangeGenerator.h)
 
-add_executable(unit_tests
-        unit_tests/main.cpp)
+#add_executable(unit_tests
+#        unit_tests/main.cpp
+#        src/HammingDistance.cpp
+#        unit_tests/HammingDistanceTests.cpp
+#        src/PMX.cpp
+#        unit_tests/PMXTests.cpp)
 
-target_link_libraries(unit_tests gtest gtest_main)
+# target_link_libraries(unit_tests gtest gtest_main)

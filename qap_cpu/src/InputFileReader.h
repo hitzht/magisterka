@@ -7,12 +7,14 @@
 class InputFileReader {
 private:
     std::string path;
+    unsigned instanceSize;
     Matrix<unsigned> weights;
     Matrix<unsigned> distances;
 
 public:
     explicit InputFileReader(const std::string &path);
 
+    unsigned getInstanceSize() const;
     Matrix<unsigned> getWeights() const;
     Matrix<unsigned> getDistances() const;
 
