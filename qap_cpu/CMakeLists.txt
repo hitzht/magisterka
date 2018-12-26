@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 17)
 include(${PROJECT_SOURCE_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
 
+include_directories(${PROJECT_SOURCE_DIR}/libs)
+
 add_executable(qap_cpu
         src/main.cpp
         src/QAP.cpp
@@ -23,13 +25,13 @@ add_executable(qap_cpu
         src/PMX.cpp
         src/PMX.h
         src/RangeGenerator.cpp
-        src/RangeGenerator.h)
+        src/RangeGenerator.h src/ProgramArgumentsParser.cpp src/ProgramArgumentsParser.h src/SolutionFileReader.cpp src/SolutionFileReader.h)
 
-#add_executable(unit_tests
-#        unit_tests/main.cpp
-#        src/HammingDistance.cpp
-#        unit_tests/HammingDistanceTests.cpp
-#        src/PMX.cpp
-#        unit_tests/PMXTests.cpp)
+add_executable(unit_tests
+        unit_tests/main.cpp
+        src/HammingDistance.cpp
+        unit_tests/HammingDistanceTests.cpp
+        src/PMX.cpp
+        unit_tests/PMXTests.cpp)
 
-# target_link_libraries(unit_tests gtest gtest_main)
+ target_link_libraries(unit_tests gtest gtest_main)
