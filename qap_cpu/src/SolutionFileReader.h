@@ -6,13 +6,17 @@
 #include "QAPDataTypes.h"
 
 class SolutionFileReader {
+private:
+    unsigned instanceSize;
+    unsigned solutionValue;
+    Permutation<unsigned> solution;
+
 public:
     explicit SolutionFileReader(const std::string& path);
 
-    unsigned getSolutionSize();
+    unsigned getInstanceSize();
     unsigned getSolutionValue();
     Permutation<unsigned> getSolution();
-
 };
 
 #endif

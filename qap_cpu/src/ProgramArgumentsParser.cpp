@@ -2,11 +2,13 @@
 
 ProgramArgumentsParser::ProgramArgumentsParser(int argc, char **argv):
     options("qap_cpu", "Implementation of electromagnetic algorithm for quadratic assignment problem") {
+    this->addOptions();
     parseResult = std::make_unique<cxxopts::ParseResult>(options.parse(argc, argv));
 }
 
 void ProgramArgumentsParser::addOptions() {
     options.add_options()
+            ("h,help", "Print help")
             ("f,input_file", "Path to file which contains weights and distances matrix.",
              cxxopts::value<std::string>())
             ("s,solution_file", "[optional]Path to file which contains optimal solution.",
@@ -19,8 +21,21 @@ void ProgramArgumentsParser::addOptions() {
              cxxopts::value<unsigned>()->default_value("1000")->implicit_value("1000"));
 }
 
+bool ProgramArgumentsParser::hasHelp() {
+    return this->parseResult->count("help") > 0;
+}
+
+void ProgramArgumentsParser::displayHelp() {
+    std::cout << this->options.help({""}) << std::endl;
+}
+
 std::string ProgramArgumentsParser::getInputFile() {
-    return this->parseResult->operator[]("input_file").as<std::string>();
+    if (this->parseResult->count("input_file")) {
+        return this->parseResult->operator[]("input_file").as<std::string>();
+    } else {
+      this->displayHelp();
+      throw std::runtime_error("Missing argument: input_file");
+    }
 }
 
 bool ProgramArgumentsParser::hasSolutionFile() {
@@ -28,17 +43,37 @@ bool ProgramArgumentsParser::hasSolutionFile() {
 }
 
 std::string ProgramArgumentsParser::getSolutionFile() {
-    return this->parseResult->operator[]("solution_file").as<std::string>();
+    if (this->parseResult->count("solution_file")) {
+        return this->parseResult->operator[]("solution_file").as<std::string>();
+    } else {
+        this->displayHelp();
+        throw std::runtime_error("Missing argument: solution_file");
+    }
 }
 
 unsigned ProgramArgumentsParser::getPopulationSize() {
-    return this->parseResult->operator[]("population").as<unsigned>();
+    if (this->parseResult->count("population")) {
+        return this->parseResult->operator[]("population").as<unsigned>();
+    } else {
+        this->displayHelp();
+        throw std::runtime_error("Missing argument: population");
+    }
 }
 
 unsigned ProgramArgumentsParser::getIterationsCount() {
-    return this->parseResult->operator[]("iterations").as<unsigned>();
+    if (this->parseResult->count("iterations")) {
+        return this->parseResult->operator[]("iterations").as<unsigned>();
+    } else {
+        this->displayHelp();
+        throw std::runtime_error("Missing argument: iterations");
+    }
 }
 
 unsigned ProgramArgumentsParser::getNeighborhoodDistance() {
-    return this->parseResult->operator[]("distance").as<unsigned>();
+    if (this->parseResult->count("distance")) {
+        return this->parseResult->operator[]("distance").as<unsigned>();
+    } else {
+        this->displayHelp();
+        throw std::runtime_error("Missing argument: distance");
+    }
 }

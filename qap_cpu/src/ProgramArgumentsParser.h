@@ -12,6 +12,8 @@ private:
 public:
     ProgramArgumentsParser(int argc, char** argv);
 
+    bool hasHelp();
+    void displayHelp();
     std::string getInputFile();
     bool hasSolutionFile();
     std::string getSolutionFile();
