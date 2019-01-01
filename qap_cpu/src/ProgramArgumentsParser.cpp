@@ -18,7 +18,7 @@ void ProgramArgumentsParser::addOptions() {
             ("i,iterations", "Number of interactions to perform.",
              cxxopts::value<unsigned>()->default_value("1000")->implicit_value("1000"))
             ("d,distance", "Value of solution's neighborhood distance.",
-             cxxopts::value<unsigned>()->default_value("1000")->implicit_value("1000"));
+             cxxopts::value<unsigned>()->default_value("6")->implicit_value("6"));
 }
 
 bool ProgramArgumentsParser::hasHelp() {
@@ -52,28 +52,13 @@ std::string ProgramArgumentsParser::getSolutionFile() {
 }
 
 unsigned ProgramArgumentsParser::getPopulationSize() {
-    if (this->parseResult->count("population")) {
-        return this->parseResult->operator[]("population").as<unsigned>();
-    } else {
-        this->displayHelp();
-        throw std::runtime_error("Missing argument: population");
-    }
+    return this->parseResult->operator[]("population").as<unsigned>();
 }
 
 unsigned ProgramArgumentsParser::getIterationsCount() {
-    if (this->parseResult->count("iterations")) {
-        return this->parseResult->operator[]("iterations").as<unsigned>();
-    } else {
-        this->displayHelp();
-        throw std::runtime_error("Missing argument: iterations");
-    }
+    return this->parseResult->operator[]("iterations").as<unsigned>();
 }
 
 unsigned ProgramArgumentsParser::getNeighborhoodDistance() {
-    if (this->parseResult->count("distance")) {
-        return this->parseResult->operator[]("distance").as<unsigned>();
-    } else {
-        this->displayHelp();
-        throw std::runtime_error("Missing argument: distance");
-    }
+    return this->parseResult->operator[]("distance").as<unsigned>();
 }
