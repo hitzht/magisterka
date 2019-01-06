@@ -1,4 +1,5 @@
 #include <exception>
+#include <stdexcept>
 #include "HammingDistance.h"
 
 unsigned HammingDistance::calculate(const Permutation<unsigned> &p1, const Permutation<unsigned> &p2) {

@@ -6,7 +6,14 @@ set(CMAKE_CXX_STANDARD 17)
 include(${PROJECT_SOURCE_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
 
-include_directories(${PROJECT_SOURCE_DIR}/libs)
+include_directories(
+        ${PROJECT_SOURCE_DIR}/libs/cxxopts
+        ${PROJECT_SOURCE_DIR}/libs/googletest/include
+)
+
+link_directories(
+        ${PROJECT_SOURCE_DIR}/libs/googletest/build/lib
+)
 
 add_executable(qap_cpu
         src/main.cpp
@@ -25,7 +32,11 @@ add_executable(qap_cpu
         src/PMX.cpp
         src/PMX.h
         src/RangeGenerator.cpp
-        src/RangeGenerator.h src/ProgramArgumentsParser.cpp src/ProgramArgumentsParser.h src/SolutionFileReader.cpp src/SolutionFileReader.h)
+        src/RangeGenerator.h
+        src/ProgramArgumentsParser.cpp
+        src/ProgramArgumentsParser.h
+        src/SolutionFileReader.cpp
+        src/SolutionFileReader.h)
 
 add_executable(unit_tests
         unit_tests/main.cpp
@@ -34,4 +45,4 @@ add_executable(unit_tests
         src/PMX.cpp
         unit_tests/PMXTests.cpp)
 
- target_link_libraries(unit_tests gtest gtest_main)
+target_link_libraries(unit_tests gtest gtest_main pthread)

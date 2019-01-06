@@ -1,5 +1,6 @@
 #include "PMX.h"
 #include <exception>
+#include <stdexcept>
 #include <algorithm>
 #include <list>
 #include <string>
