@@ -14,11 +14,11 @@ void ProgramArgumentsParser::addOptions() {
             ("s,solution_file", "[optional]Path to file which contains optimal solution.",
              cxxopts::value<std::string>())
             ("p,population", "Size of solutions population.",
-             cxxopts::value<unsigned>()->default_value("100")->implicit_value("100"))
+             cxxopts::value<unsigned>()->default_value("100"))
             ("i,iterations", "Number of interactions to perform.",
-             cxxopts::value<unsigned>()->default_value("1000")->implicit_value("1000"))
+             cxxopts::value<unsigned>()->default_value("1000"))
             ("d,distance", "Value of solution's neighborhood distance.",
-             cxxopts::value<unsigned>()->default_value("6")->implicit_value("6"));
+             cxxopts::value<unsigned>()->default_value("6"));
 }
 
 bool ProgramArgumentsParser::hasHelp() {

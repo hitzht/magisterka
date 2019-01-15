@@ -1,4 +1,5 @@
 #include <numeric>
+#include <iostream>
 #include "EMAlgorithm.h"
 #include "HammingDistance.h"
 
@@ -11,6 +12,10 @@ EMAlgorithm::solve(unsigned instanceSize, unsigned populationSize, unsigned iter
     auto population = this->factory.get(instanceSize, populationSize);
     std::vector<Permutation<unsigned>> nextPopulation(populationSize);
 
+    auto bestPermutation = this->findBest(population);
+    auto bestValue = this->qap.getValue(bestPermutation);
+    std::cout << bestValue << std::endl;
+
     while (iterations--) {
         for (unsigned i =0; i < populationSize; i++) {
             auto surroundings = this->getSolutionSurroundings(population, i, distance);
@@ -19,6 +24,10 @@ EMAlgorithm::solve(unsigned instanceSize, unsigned populationSize, unsigned iter
         }
 
         population = nextPopulation;
+
+        bestPermutation = this->findBest(population);
+        bestValue = this->qap.getValue(bestPermutation);
+        std::cout << bestValue << std::endl;
     }
 
     return this->findBest(population);
@@ -32,11 +41,13 @@ EMAlgorithm::getSolutionSurroundings(const std::vector<Permutation<unsigned>> &p
     auto currentSolution = population[solutionIndex];
     auto currentValue = this->qap.getValue(currentSolution);
 
-    for (unsigned i = 0; i < population.size(); i++)
-        if (i != solutionIndex)
-            if (HammingDistance::calculate(currentSolution, population[i]) <= distance)
-                if (this->qap.getValue(population[i]) < currentValue)
-                    surroundings.push_back(population[i]);
+    for (unsigned i = 0; i < population.size(); i++) {
+        if (i != solutionIndex && HammingDistance::calculate(currentSolution, population[i]) <= distance) {
+            if (this->qap.getValue(population[i]) < currentValue) {
+                surroundings.push_back(population[i]);
+            }
+        }
+    }
 
     return surroundings;
 }
