@@ -1,22 +1,46 @@
-from em_alg import EMSolver
-from test_functions import himmelblau
+import argparse
+import sys
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import numpy as np
 
+from em_alg import EMSolver
+from benchmark_functions.factory import BenchmarkFactory
 
-if __name__ == '__main__':
 
-    lower_bound = [-5, -5]
-    upper_bound = [5, 5]
-    points_count = 5
-    max_iterations = 40
-    dimension = 2
+def parse_arguments(args):
+    parser = argparse.ArgumentParser(description='Script displays visualisation of electromagnetism-like algorithm')
+    parser.add_argument('-l', '--list', help='display list of available test functions', action="store_true")
+    parser.add_argument('-f', '--function', help='name of tested function', required=False)
+    parser.add_argument('-p', '--points', help='points count', type=int, default=10)
+    parser.add_argument('-i', '--iterations', help='iterations count', type=int, default=20)
 
-    local_optima = [[3.0, 2.0], [-2.805118, 3.131312], [-3.779310, -3.283186], [3.584428, -1.848126]]
-    local_optima = list(zip(*local_optima))
+    results = parser.parse_args(args)
 
-    solver = EMSolver(points_count, dimension, lower_bound, upper_bound, himmelblau)
+    if results.list is False and results.function is None:
+        parser.error("You have to provide at least -l(--list) or -f(--function)")
+
+    return results.list, results.function, results.points, results.iterations
+
+
+def list_available_functions():
+    factory = BenchmarkFactory()
+    functions = factory.get_all_functions()
+    functions_2d = dict((k, v) for k, v in functions.items() if v.get_dimension() == 2)
+
+    for function_name in functions_2d.keys():
+        print(function_name)
+
+
+def display_animation(function_name: 'str', points_count: int, iterations_count: int):
+    factory = BenchmarkFactory()
+    test_function = factory.get_benchmark_function(function_name)
+
+    lower_bound, upper_bound = test_function.get_bounds()
+    dimension = test_function.get_dimension()
+    local_optima = list(zip(*test_function.get_local_optima()))
+
+    solver = EMSolver(points_count, dimension, lower_bound, upper_bound, test_function.get_function())
 
     fig, ax = plt.subplots(nrows=1, ncols=2)
     fig.set_size_inches(10, 10, forward=True)
@@ -26,7 +50,7 @@ if __name__ == '__main__':
     x = np.linspace(lower_bound[0], upper_bound[0], 1000)
     y = np.linspace(lower_bound[1], upper_bound[1], 1000)
     X, Y = np.meshgrid(x, y)
-    Z = himmelblau(X, Y)
+    Z = test_function.get_function()(X, Y)
 
     area_plot = ax[0]
     values_plot = ax[1]
@@ -36,10 +60,12 @@ if __name__ == '__main__':
     average_values = []
 
     def update(num):
-        if num < max_iterations:
+        if num < iterations_count:
             area_plot.clear()
             area_plot.axis([lower_bound[0], upper_bound[0], lower_bound[1], upper_bound[1]])
-            area_plot.contour(X, Y, Z, 20, zorder=1)
+            CS = area_plot.contour(X, Y, Z, 20, zorder=1, cmap='brg')
+            plt.clabel(CS, inline=1, fontsize=8)
+
             area_plot.plot(local_optima[0], local_optima[1], 'bD', zorder=2)
 
             points, forces, moved_points = solver.next_iteration()
@@ -54,15 +80,15 @@ if __name__ == '__main__':
             area_plot.plot(tmp[0], tmp[1], 'gX', zorder=4)
 
             best_point = moved_points[solver.find_best_point(moved_points)]
-            best_value = himmelblau(best_point)
-            average_value = sum([himmelblau(point) for point in moved_points]) / len(moved_points)
+            best_value = test_function.get_function()(best_point)
+            average_value = sum([test_function.get_function()(point) for point in moved_points]) / points_count
 
             iterations.append(num)
             best_values.append(best_value)
             average_values.append(average_value)
 
             values_plot.clear()
-            values_plot.axis([0, 40, 0, max(max(best_values), max(average_values))])
+            values_plot.axis([0, iterations_count, 0, max(max(best_values), max(average_values))])
             values_plot.plot(iterations, best_values, 'g')
             values_plot.plot(iterations, average_values, 'b')
 
@@ -71,3 +97,11 @@ if __name__ == '__main__':
     plt.show()
 
 
+if __name__ == '__main__':
+
+    list_functions, function_name, points, iterations = parse_arguments(sys.argv[1:])
+
+    if list_functions:
+        list_available_functions()
+    else:
+        display_animation(function_name, points, iterations)

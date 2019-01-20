@@ -1,6 +1,5 @@
-from typing import List
-from em import initialize, local_search, calculate_forces, move, find_best_point
-from test_functions import himmelblau
+from em import initialize, calculate_forces, move, find_best_point
+from benchmark_functions.test_function import himmelblau
 
 
 if __name__ == '__main__':

@@ -1,5 +1,5 @@
 from em_alg import EMSolver
-from test_functions import himmelblau
+from benchmark_functions.test_function import himmelblau
 
 
 if __name__ == '__main__':
