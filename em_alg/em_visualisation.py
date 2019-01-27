@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import numpy as np
 
-from em_alg import EMSolver
+from em.em_solver import EMSolver
 from benchmark_functions.factory import BenchmarkFactory
 
 

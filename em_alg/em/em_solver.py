@@ -94,7 +94,10 @@ class EMSolver:
         denominator = sum([self.__function(point) - self.__function(best_point) for point in self.__points])
 
         for point in self.__points:
-            charge = exp(-self.__dimension * (self.__function(point) - self.__function(best_point)) / denominator)
+            if denominator == 0:
+                charge = 0
+            else:
+                charge = exp(-self.__dimension * (self.__function(point) - self.__function(best_point)) / denominator)
             charges.append(charge)
 
         return charges
