@@ -10,8 +10,10 @@ class SolutionFileReader:
         file_content = [line for line in file.readlines() if len(line.strip()) > 0]
 
         dimension, solution_value = [int(val) for val in file_content[0].split(" ") if len(val.strip()) > 0]
-        values = [int(val) for val in file_content[1].split(" ") if len(val.strip()) > 0]
-        values = list(map(lambda x: x - 1, values))
+        values = []
+
+        for line in file_content[1:]:
+            values.extend([int(num) -1 for num in line.split(" ") if len(num.strip()) > 0])
 
         return dimension, solution_value, values
 

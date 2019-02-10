@@ -10,17 +10,25 @@ class InputFileReader:
         file_content = [line for line in file.readlines() if len(line.strip()) > 0]
         dimension = int(file_content[0])
 
+        values = []
         weights = []
-        for i in range(dimension):
-            values = [int(val) for val in file_content[1 + i].split(" ") if len(val) > 0 and val != '\n']
-            weights.append(values)
-
         distances = []
-        for i in range(dimension):
-            values = [int(val) for val in file_content[1 + dimension + i].split(" ") if len(val) > 0 and val != '\n']
-            distances.append(values)
 
-        file.close()
+        for line in file_content[1:]:
+            numbers = [int(val) for val in line.split(" ") if len(val.strip()) > 0]
+            values.extend(numbers)
+
+        for i in range(dimension):
+            tmp = []
+            for j in range(dimension):
+                tmp.append(values.pop(0))
+            weights.append(tmp)
+
+        for i in range(dimension):
+            tmp = []
+            for j in range(dimension):
+                tmp.append(values.pop(0))
+            distances.append(tmp)
 
         return dimension, weights, distances
 
