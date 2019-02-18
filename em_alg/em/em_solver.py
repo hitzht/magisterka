@@ -7,7 +7,7 @@ import numpy as np
 class EMSolver:
 
     def __init__(self, points_count: int, dimension: int, lower_bound: List[float], upper_bound: List[float],
-                 function: Callable[[Any],float]) -> None:
+                 function: Callable[[Any], float]) -> None:
         self.__points_count = points_count
         self.__dimension = dimension
         self.__lower_bound = lower_bound
@@ -91,13 +91,14 @@ class EMSolver:
 
         index = self.find_best_point(self.__points)
         best_point = self.__points[index]
-        denominator = sum([self.__function(point) - self.__function(best_point) for point in self.__points])
+        best_value = self.__function(best_point)
+        denominator = sum([self.__function(point) - best_value for point in self.__points])
 
         for point in self.__points:
             if denominator == 0:
                 charge = 0
             else:
-                charge = exp(-self.__dimension * (self.__function(point) - self.__function(best_point)) / denominator)
+                charge = exp(-self.__dimension * (self.__function(point) - best_value) / denominator)
             charges.append(charge)
 
         return charges
@@ -136,6 +137,7 @@ class EMSolver:
                 force = forces[i]
 
                 for k in range(self.__dimension):
+                    # TODO tutaj jest inaczej niż w orginalnym algorytmie, dlaczego?
                     if force[k] > 0:
                         self.__points[i][k] = self.__points[i][k] + step * force[k]
                     else:

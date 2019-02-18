@@ -1,24 +1,30 @@
 import numpy as np
 import random
+import time
+from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_uniform_float32
 from input_file_reader import InputFileReader
-from numba import cuda, int64
+from numba import cuda, int64, float64
 from typing import List
+from math import exp, sqrt
 
 
-def initialize(points_count: int, lower_bound: float, upper_bound: float) -> List['np.array']:
+def initialize(points_count: int, dimension: int, lower_bound: float, upper_bound: float) -> List['np.array']:
     """Generates list of start points in set bounds"""
-
-    if lower_bound >= upper_bound:
-        raise RuntimeError("Upper bound must be greater than lower bound")
 
     if points_count <= 0:
         raise RuntimeError("Invalid points count")
 
+    if dimension <= 0:
+        raise RuntimeError("Invalid dimension")
+
+    if lower_bound >= upper_bound:
+        raise RuntimeError("Upper bound must be greater than lower bound")
+
     result = []
     for _ in range(points_count):
         point = []
-        for bound in zip(lower_bound, upper_bound):
-            point.append(random.uniform(bound[0], bound[1]))
+        for _ in range(dimension):
+            point.append(random.uniform(lower_bound, upper_bound))
         result.append(np.array(point))
 
     return result
@@ -31,13 +37,17 @@ def bubblesort(values, indexes):
     for i in range(N):
         indexes[i] = i
 
+    tmp_values = cuda.local.array(20, float64)
+    for i in range(N):
+        tmp_values[i] = values[i]
+
     for end in range(N, 1, -1):
         for i in range(end - 1):
-            cur = values[i]
+            cur = tmp_values[i]
             if cur > values[i + 1]:
-                tmp = values[i]
-                values[i] = values[i + 1]
-                values[i + 1] = tmp
+                tmp = tmp_values[i]
+                tmp_values[i] = values[i + 1]
+                tmp_values[i + 1] = tmp
                 t = indexes[i]
                 indexes[i] = indexes[i + 1]
                 indexes[i + 1] = t
@@ -47,6 +57,7 @@ def bubblesort(values, indexes):
 def qap(permutation: List[float], weights: List[List[int]], distances: List[List[int]]):
     result = 0
 
+    # TODO rozmiar tej tablicy musi byc stalą czasu kompilacji , wtf
     indexes = cuda.local.array(20, int64)
     bubblesort(permutation, indexes)
 
@@ -62,40 +73,188 @@ def qap(permutation: List[float], weights: List[List[int]], distances: List[List
     return result
 
 
-@cuda.jit
-def local_search(points, weights, distances):
-    pass
+def qap_host(permutation: List[float], weights: List[List[int]], distances: List[List[int]]):
+    result = 0
+    indexes = np.argsort(permutation)
+
+    for a in range(len(permutation)):
+        for b in range(len(permutation)):
+            weight = weights[a][b]
+            first_point = indexes[a]
+            second_point = indexes[b]
+            distance = distances[first_point][second_point]
+
+            result += weight * distance
+
+    return result
 
 
 @cuda.jit
-def kernel(permutation, weights, distances, result):
-    result[0] = qap(permutation, weights, distances)
+def local_search(points, weights, distances, upper_bound, lower_bound, random_states):
+    thread_id = cuda.threadIdx.x
+
+    if thread_id < len(points):
+        pass
+        # TODO rozmiar tej tablicy musi byc stalą czasu kompilacji , wtf
+        tmp_point = cuda.local.array(20, float64)
+
+        for i in range(20):
+            tmp_point[i] = points[thread_id][i]
+
+        for index in range(20):
+            direction = xoroshiro128p_uniform_float32(random_states, thread_id) > 0.5
+            step = xoroshiro128p_uniform_float32(random_states, thread_id)
+
+            if direction:
+                length = upper_bound - tmp_point[index]
+                tmp_point[index] = tmp_point[index] + step * length
+            else:
+                length = tmp_point[index] - lower_bound
+                tmp_point[index] = tmp_point[index] - step * length
+
+            val1 = qap(tmp_point, weights, distances)
+            val2 = qap(points[thread_id], weights, distances)
+            if val1 < val2:
+                for i in range(20):
+                    points[thread_id][i] = tmp_point[i]
+                break
+
+
+@cuda.jit
+def calculate_charges(points, weights, distances, best_value, denominator, charges):
+    thread_id = cuda.threadIdx.x
+
+    if thread_id < len(points):
+        if denominator == 0:
+            charges[thread_id] = 0
+        else:
+            charges[thread_id] = exp(-20 * (qap(points[thread_id], weights, distances) - best_value) / denominator)
+
+
+@cuda.jit('float64(float64[:], float64[:])', device=True)
+def calculate_distance(first_point, second_point):
+    result = 0.0
+
+    for i in range(len(first_point)):
+        result += (first_point[i] - second_point[i]) ** 2
+
+    return sqrt(result)
+
+
+@cuda.jit('float64(float64[:])', device=True)
+def calculate_vector_length(vector):
+    result = 0.0
+
+    for i in range(len(vector)):
+        result += (vector[i] ** 2)
+
+    return sqrt(result)
+
+
+@cuda.jit
+def calculate_forces(points, weights, distances, best_point_index, charges, forces):
+    thread_id = cuda.threadIdx.x
+
+    if thread_id == best_point_index:
+        return
+
+    for j in range(len(points)):
+        if thread_id != j:
+            distance = calculate_distance(points[thread_id], points[j])
+
+            # todo kurwa
+            point_dif = cuda.local.array(20, float64)
+            charge = (charges[thread_id][0] * charges[j][0]) / (distance ** 2)
+
+            for i in range(20):
+                point_dif[i] = (points[thread_id][i] - points[j][i]) * charge
+
+            if qap(points[thread_id], weights, distances) < qap(points[j], weights, distances):
+                for i in range(20):
+                    forces[thread_id][i] += point_dif[i]
+            else:
+                for i in range(20):
+                    forces[thread_id][i] -= point_dif[i]
+
+    force_length = calculate_vector_length(forces[thread_id])
+
+    if force_length != 0:
+        for i in range(20):
+            forces[thread_id][i] /= force_length
+
+
+@cuda.jit
+def move(points, best_point_index, forces, random_states):
+    thread_id = cuda.threadIdx.x
+
+    if thread_id == best_point_index:
+        return
+
+    step = xoroshiro128p_uniform_float32(random_states, thread_id)
+
+    for k in range(20):
+        points[thread_id][k] = points[thread_id][k] + step * forces[thread_id][k]
+
+
+
+def find_best_point(points, weights, distances):
+    best_point = points[0]
+    best_value = qap_host(best_point, weights, distances)
+    best_index = 0
+
+    for i in range(len(points)):
+        new_value = qap_host(points[i], weights, distances)
+        if new_value < best_value:
+            best_point = points[i]
+            best_value = new_value
+            best_index = i
+
+    return best_point, best_value, best_index
 
 
 if __name__ == '__main__':
     input_reader = InputFileReader("../test_instances/Chr/chr20a.dat")
-    lower = 0
-    upper = 10
-    points = 10
+    lower_bound = 0
+    upper_bound = 10
+    points_count = 10
+    iterations = 100
 
     dimension, weights, distances = input_reader.read()
-    start_points = initialize(points, lower, upper)
 
+    random.seed(time.time())
+    start_points = initialize(points_count, dimension, lower_bound, upper_bound)
+
+    device_points = cuda.to_device(start_points)
     device_weights = cuda.to_device(weights)
     device_distances = cuda.to_device(distances)
-    device_points = cuda.to_device(start_points)
 
+    threads_per_block = points_count
+    blocks = 1
 
-    input_permutation = [0.19497359652297264, 7.630297011269675, 0.5847167073774862, 3.3412885270815105, 4.752704294067644, 0.4112064496003598, 0.6494208855356975, 1.3257172770057168, 8.505545702236283, 1.5945965077875845, 2.141845559882004, 2.1248632265971965, 8.778836740526861, 8.816840766282924, 3.5123967188886676, 6.150677000907484, 5.800047523427003, 9.332530217725306, 9.469558726297693, 1.2692515832178342]
+    for i in range(iterations):
+        print("iteration", i)
+        charges = np.zeros((points_count, 1))
+        forces = np.zeros((points_count, dimension))
+        device_charges = cuda.to_device(charges)
+        device_forces = cuda.to_device(forces)
 
-    # for i in range(dimension):
-    #     input_permutation.append(random.uniform(lower, upper))
+        random_states = create_xoroshiro128p_states(threads_per_block * blocks, seed=time.time())
+        local_search[blocks, threads_per_block](device_points, device_weights, device_distances,
+                                                upper_bound, lower_bound, random_states)
 
-    print(input_permutation)
-    device_permutation = cuda.to_device(input_permutation)
-    res = cuda.to_device((1))
+        points = device_points.copy_to_host()
+        best_point, best_value, best_index = find_best_point(points, weights, distances)
+        denominator = sum([qap_host(point, weights, distances) - best_value for point in points])
 
-    kernel[1, 1](device_permutation, device_weights, device_distances, res)
-    ddd = res.copy_to_host()
-    print(ddd)
+        calculate_charges[blocks, threads_per_block](device_points, device_weights, device_distances, best_value,
+                                                     denominator, device_charges)
 
+        calculate_forces[blocks, threads_per_block](device_points, device_weights, device_distances, best_index,
+                                                    device_charges, device_forces)
+
+        random_states = create_xoroshiro128p_states(threads_per_block * blocks, seed=time.time())
+        move[blocks, threads_per_block](device_points, best_index, device_forces, random_states)
+
+        points = device_points.copy_to_host()
+        best_point, best_value, best_index = find_best_point(points, weights, distances)
+        print(best_value)
