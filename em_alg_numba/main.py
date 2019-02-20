@@ -2,7 +2,7 @@ import numpy as np
 import random
 import time
 from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_uniform_float32
-from input_file_reader import InputFileReader
+from qap.input_file_reader import InputFileReader
 from numba import cuda, int64, float64
 from typing import List
 from math import exp, sqrt
@@ -44,9 +44,9 @@ def bubblesort(values, indexes):
     for end in range(N, 1, -1):
         for i in range(end - 1):
             cur = tmp_values[i]
-            if cur > values[i + 1]:
+            if cur > tmp_values[i + 1]:
                 tmp = tmp_values[i]
-                tmp_values[i] = values[i + 1]
+                tmp_values[i] = tmp_values[i + 1]
                 tmp_values[i + 1] = tmp
                 t = indexes[i]
                 indexes[i] = indexes[i + 1]
@@ -54,7 +54,7 @@ def bubblesort(values, indexes):
 
 
 @cuda.jit('int64(float64[:], int64[:,:], int64[:,:])', device=True)
-def qap(permutation: List[float], weights: List[List[int]], distances: List[List[int]]):
+def qap_device(permutation: List[float], weights: List[List[int]], distances: List[List[int]]):
     result = 0
 
     # TODO rozmiar tej tablicy musi byc stalą czasu kompilacji , wtf
@@ -112,8 +112,8 @@ def local_search(points, weights, distances, upper_bound, lower_bound, random_st
                 length = tmp_point[index] - lower_bound
                 tmp_point[index] = tmp_point[index] - step * length
 
-            val1 = qap(tmp_point, weights, distances)
-            val2 = qap(points[thread_id], weights, distances)
+            val1 = qap_device(tmp_point, weights, distances)
+            val2 = qap_device(points[thread_id], weights, distances)
             if val1 < val2:
                 for i in range(20):
                     points[thread_id][i] = tmp_point[i]
@@ -128,7 +128,8 @@ def calculate_charges(points, weights, distances, best_value, denominator, charg
         if denominator == 0:
             charges[thread_id] = 0
         else:
-            charges[thread_id] = exp(-20 * (qap(points[thread_id], weights, distances) - best_value) / denominator)
+            charges[thread_id] = exp(-20 * (qap_device(points[thread_id], weights,
+                                                       distances) - best_value) / denominator)
 
 
 @cuda.jit('float64(float64[:], float64[:])', device=True)
@@ -169,7 +170,7 @@ def calculate_forces(points, weights, distances, best_point_index, charges, forc
             for i in range(20):
                 point_dif[i] = (points[thread_id][i] - points[j][i]) * charge
 
-            if qap(points[thread_id], weights, distances) < qap(points[j], weights, distances):
+            if qap_device(points[thread_id], weights, distances) < qap_device(points[j], weights, distances):
                 for i in range(20):
                     forces[thread_id][i] += point_dif[i]
             else:
@@ -216,8 +217,8 @@ if __name__ == '__main__':
     input_reader = InputFileReader("../test_instances/Chr/chr20a.dat")
     lower_bound = 0
     upper_bound = 10
-    points_count = 10
-    iterations = 100
+    points_count = 100
+    iterations = 1000
 
     dimension, weights, distances = input_reader.read()
 
@@ -231,6 +232,8 @@ if __name__ == '__main__':
     threads_per_block = points_count
     blocks = 1
 
+    random_states = create_xoroshiro128p_states(threads_per_block * blocks, seed=time.time())
+
     for i in range(iterations):
         print("iteration", i)
         charges = np.zeros((points_count, 1))
@@ -238,7 +241,7 @@ if __name__ == '__main__':
         device_charges = cuda.to_device(charges)
         device_forces = cuda.to_device(forces)
 
-        random_states = create_xoroshiro128p_states(threads_per_block * blocks, seed=time.time())
+
         local_search[blocks, threads_per_block](device_points, device_weights, device_distances,
                                                 upper_bound, lower_bound, random_states)
 
@@ -252,7 +255,6 @@ if __name__ == '__main__':
         calculate_forces[blocks, threads_per_block](device_points, device_weights, device_distances, best_index,
                                                     device_charges, device_forces)
 
-        random_states = create_xoroshiro128p_states(threads_per_block * blocks, seed=time.time())
         move[blocks, threads_per_block](device_points, best_index, device_forces, random_states)
 
         points = device_points.copy_to_host()

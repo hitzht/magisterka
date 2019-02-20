@@ -6,6 +6,11 @@ class InputFileReader:
         self.__path = path
 
     def read(self) -> Tuple[int, List[List[int]], List[List[int]]]:
+        """
+        Reads standard qap lib input file
+
+        :return: dimension, weights matrix, distances matrix
+        """
         file = open(self.__path, "r")
         file_content = [line for line in file.readlines() if len(line.strip()) > 0]
         dimension = int(file_content[0])
