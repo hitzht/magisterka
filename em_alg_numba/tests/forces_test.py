@@ -1,6 +1,6 @@
 import numpy as np
 from numba import cuda
-from main import calculate_forces, find_best_point, calculate_charges, qap_host
+from em_qap_gpu import calculate_forces, find_best_point, calculate_charges, qap_host
 from qap.input_file_reader import InputFileReader
 from em_cpu.em_solver import EMSolver
 from qap.qap import QAP

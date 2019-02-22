@@ -1,11 +1,14 @@
 import numpy as np
 import random
 import time
-from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_uniform_float32
-from qap.input_file_reader import InputFileReader
-from numba import cuda, int64, float64
 from typing import List
 from math import exp, sqrt
+from numba import cuda, int64, float64
+from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_uniform_float32
+from tqdm import tqdm
+from qap.input_file_reader import InputFileReader
+from qap.solution_file_reader import SolutionFileReader
+from qap.qap import QAP
 
 
 def initialize(points_count: int, dimension: int, lower_bound: float, upper_bound: float) -> List['np.array']:
@@ -197,7 +200,6 @@ def move(points, best_point_index, forces, random_states):
         points[thread_id][k] = points[thread_id][k] + step * forces[thread_id][k]
 
 
-
 def find_best_point(points, weights, distances):
     best_point = points[0]
     best_value = qap_host(best_point, weights, distances)
@@ -213,35 +215,51 @@ def find_best_point(points, weights, distances):
     return best_point, best_value, best_index
 
 
-if __name__ == '__main__':
-    input_reader = InputFileReader("../test_instances/Chr/chr20a.dat")
-    lower_bound = 0
-    upper_bound = 10
-    points_count = 100
-    iterations = 1000
-
+def solve(input_file, solution_file, points_count, iterations, upper_bound, lower_bound, show_progress=False):
+    input_reader = InputFileReader(input_file)
     dimension, weights, distances = input_reader.read()
+
+    optimal_value = None
+    optimal_permutation = None
+
+    if solution_file is not None:
+        solution_reader = SolutionFileReader(solution_file)
+        solution_dimension, solution_value, solution_permutation = solution_reader.read()
+
+        qap = QAP(weights, distances)
+
+        if solution_dimension != dimension:
+            raise RuntimeError("Solution dimension is different than input dimension")
+
+        if qap.get_value(solution_permutation) != solution_value:
+            raise RuntimeError("Solution value does not match calculated solution permutation value")
+
+        optimal_value = solution_value
+        optimal_permutation = solution_permutation
 
     random.seed(time.time())
     start_points = initialize(points_count, dimension, lower_bound, upper_bound)
+
+    r = tqdm(range(iterations)) if show_progress else range(iterations)
 
     device_points = cuda.to_device(start_points)
     device_weights = cuda.to_device(weights)
     device_distances = cuda.to_device(distances)
 
+    charges = np.zeros((points_count, 1))
+    forces = np.zeros((points_count, dimension))
+    device_charges = cuda.to_device(charges)
+    device_forces = cuda.to_device(forces)
+
+    # TODO: add check if points_count is lower than max threads per block
     threads_per_block = points_count
     blocks = 1
 
     random_states = create_xoroshiro128p_states(threads_per_block * blocks, seed=time.time())
 
-    for i in range(iterations):
-        print("iteration", i)
-        charges = np.zeros((points_count, 1))
-        forces = np.zeros((points_count, dimension))
-        device_charges = cuda.to_device(charges)
-        device_forces = cuda.to_device(forces)
+    best_values = []
 
-
+    for it in r:
         local_search[blocks, threads_per_block](device_points, device_weights, device_distances,
                                                 upper_bound, lower_bound, random_states)
 
@@ -259,4 +277,55 @@ if __name__ == '__main__':
 
         points = device_points.copy_to_host()
         best_point, best_value, best_index = find_best_point(points, weights, distances)
-        print(best_value)
+
+        best_values.append(best_value)
+
+    return best_values, optimal_value
+#
+# if __name__ == '__main__':
+#     input_reader = InputFileReader("../test_instances/Chr/chr20a.dat")
+#     lower_bound = 0
+#     upper_bound = 10
+#     points_count = 100
+#     iterations = 1000
+#
+#     dimension, weights, distances = input_reader.read()
+#
+#     random.seed(time.time())
+#     start_points = initialize(points_count, dimension, lower_bound, upper_bound)
+#
+#     device_points = cuda.to_device(start_points)
+#     device_weights = cuda.to_device(weights)
+#     device_distances = cuda.to_device(distances)
+#
+#     threads_per_block = points_count
+#     blocks = 1
+#
+#     random_states = create_xoroshiro128p_states(threads_per_block * blocks, seed=time.time())
+#
+#     for i in range(iterations):
+#         print("iteration", i)
+#         charges = np.zeros((points_count, 1))
+#         forces = np.zeros((points_count, dimension))
+#         device_charges = cuda.to_device(charges)
+#         device_forces = cuda.to_device(forces)
+#
+#
+#         local_search[blocks, threads_per_block](device_points, device_weights, device_distances,
+#                                                 upper_bound, lower_bound, random_states)
+#
+#         points = device_points.copy_to_host()
+#         best_point, best_value, best_index = find_best_point(points, weights, distances)
+#         denominator = sum([qap_host(point, weights, distances) - best_value for point in points])
+#
+#         calculate_charges[blocks, threads_per_block](device_points, device_weights, device_distances, best_value,
+#                                                      denominator, device_charges)
+#
+#         calculate_forces[blocks, threads_per_block](device_points, device_weights, device_distances, best_index,
+#                                                     device_charges, device_forces)
+#
+#         move[blocks, threads_per_block](device_points, best_index, device_forces, random_states)
+#
+#         points = device_points.copy_to_host()
+#         best_point, best_value, best_index = find_best_point(points, weights, distances)
+#         print(best_value)

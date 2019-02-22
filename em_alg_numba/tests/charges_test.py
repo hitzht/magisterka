@@ -4,7 +4,7 @@ from qap.input_file_reader import InputFileReader
 from em_cpu.em_solver import EMSolver
 from tests.test_points import test_points
 from qap.qap import QAP
-from main import calculate_charges, find_best_point, qap_host
+from em_qap_gpu import calculate_charges, find_best_point, qap_host
 
 
 if __name__ == '__main__':

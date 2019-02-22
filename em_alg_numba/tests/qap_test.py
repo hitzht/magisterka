@@ -3,7 +3,7 @@ from numba import cuda
 from tests.test_points import test_points
 from qap.qap import QAP
 from qap.input_file_reader import InputFileReader
-from main import qap_device
+from em_qap_gpu import qap_device
 
 
 @cuda.jit

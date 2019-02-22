@@ -1,6 +1,6 @@
 import time
 from numba import cuda
-from main import local_search, find_best_point
+from em_qap_gpu import local_search, find_best_point
 from tests.test_points import test_points
 from qap.input_file_reader import InputFileReader
 from numba.cuda.random import create_xoroshiro128p_states

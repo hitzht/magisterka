@@ -1,0 +1,4 @@
+/home/rafal/Workspace/magisterka/qap_cpu/libs/googletest/build/CMakeFiles/rebuild_cache.dir
+/home/rafal/Workspace/magisterka/qap_cpu/libs/googletest/build/CMakeFiles/gtest.dir
+/home/rafal/Workspace/magisterka/qap_cpu/libs/googletest/build/CMakeFiles/edit_cache.dir
+/home/rafal/Workspace/magisterka/qap_cpu/libs/googletest/build/CMakeFiles/gtest_main.dir
