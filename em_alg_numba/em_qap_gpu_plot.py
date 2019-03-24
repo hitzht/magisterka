@@ -4,7 +4,7 @@ from em_qap_gpu import solve
 import matplotlib.pyplot as plt
 
 
-def plot_results(optimal_value, best_values, avg_values, title=""):
+def plot_results(best_values, optimal_value, title=""):
 
     fig, ax = plt.subplots()
     fig.set_size_inches(10, 10)
@@ -12,7 +12,7 @@ def plot_results(optimal_value, best_values, avg_values, title=""):
     x = [v for v in range(0, iterations)]
 
     plt.plot(x, best_values, 'g', label='Best value')
-    plt.plot(x, avg_values, 'b', label='Average value')
+    # plt.plot(x, avg_values, 'b', label='Average value')
     plt.title(title)
 
     if optimal_value is not None:
@@ -28,4 +28,10 @@ def plot_results(optimal_value, best_values, avg_values, title=""):
 
 if __name__ == '__main__':
     input_file, solution_file, points_count, iterations, upper_bound, lower_bound = parse_arguments(sys.argv[1:])
-    best_values, optimal_value = solve(input_file, solution_file, points_count, iterations, upper_bound, lower_bound)
+    best_values, optimal_value = solve(input_file, solution_file, points_count, iterations, upper_bound, lower_bound, True)
+
+    name = [v for v in input_file.split("/")][-1]
+    title = "gpu: {}, points: {}, iterations: {}, upper: {}, lower: {}"
+    title = title.format(name, points_count, iterations, upper_bound, lower_bound)
+
+    plot_results(best_values, optimal_value, title)

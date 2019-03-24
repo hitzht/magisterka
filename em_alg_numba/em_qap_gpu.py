@@ -281,51 +281,51 @@ def solve(input_file, solution_file, points_count, iterations, upper_bound, lowe
         best_values.append(best_value)
 
     return best_values, optimal_value
-#
-# if __name__ == '__main__':
-#     input_reader = InputFileReader("../test_instances/Chr/chr20a.dat")
-#     lower_bound = 0
-#     upper_bound = 10
-#     points_count = 100
-#     iterations = 1000
-#
-#     dimension, weights, distances = input_reader.read()
-#
-#     random.seed(time.time())
-#     start_points = initialize(points_count, dimension, lower_bound, upper_bound)
-#
-#     device_points = cuda.to_device(start_points)
-#     device_weights = cuda.to_device(weights)
-#     device_distances = cuda.to_device(distances)
-#
-#     threads_per_block = points_count
-#     blocks = 1
-#
-#     random_states = create_xoroshiro128p_states(threads_per_block * blocks, seed=time.time())
-#
-#     for i in range(iterations):
-#         print("iteration", i)
-#         charges = np.zeros((points_count, 1))
-#         forces = np.zeros((points_count, dimension))
-#         device_charges = cuda.to_device(charges)
-#         device_forces = cuda.to_device(forces)
-#
-#
-#         local_search[blocks, threads_per_block](device_points, device_weights, device_distances,
-#                                                 upper_bound, lower_bound, random_states)
-#
-#         points = device_points.copy_to_host()
-#         best_point, best_value, best_index = find_best_point(points, weights, distances)
-#         denominator = sum([qap_host(point, weights, distances) - best_value for point in points])
-#
-#         calculate_charges[blocks, threads_per_block](device_points, device_weights, device_distances, best_value,
-#                                                      denominator, device_charges)
-#
-#         calculate_forces[blocks, threads_per_block](device_points, device_weights, device_distances, best_index,
-#                                                     device_charges, device_forces)
-#
-#         move[blocks, threads_per_block](device_points, best_index, device_forces, random_states)
-#
-#         points = device_points.copy_to_host()
-#         best_point, best_value, best_index = find_best_point(points, weights, distances)
-#         print(best_value)
+
+if __name__ == '__main__':
+    input_reader = InputFileReader("../test_instances/Chr/chr20a.dat")
+    lower_bound = 0
+    upper_bound = 10
+    points_count = 100
+    iterations = 1000
+
+    dimension, weights, distances = input_reader.read()
+
+    random.seed(time.time())
+    start_points = initialize(points_count, dimension, lower_bound, upper_bound)
+
+    device_points = cuda.to_device(start_points)
+    device_weights = cuda.to_device(weights)
+    device_distances = cuda.to_device(distances)
+
+    threads_per_block = points_count
+    blocks = 1
+
+    random_states = create_xoroshiro128p_states(threads_per_block * blocks, seed=time.time())
+
+    for i in range(iterations):
+        print("iteration", i)
+        charges = np.zeros((points_count, 1))
+        forces = np.zeros((points_count, dimension))
+        device_charges = cuda.to_device(charges)
+        device_forces = cuda.to_device(forces)
+
+
+        local_search[blocks, threads_per_block](device_points, device_weights, device_distances,
+                                                upper_bound, lower_bound, random_states)
+
+        points = device_points.copy_to_host()
+        best_point, best_value, best_index = find_best_point(points, weights, distances)
+        denominator = sum([qap_host(point, weights, distances) - best_value for point in points])
+
+        calculate_charges[blocks, threads_per_block](device_points, device_weights, device_distances, best_value,
+                                                     denominator, device_charges)
+
+        calculate_forces[blocks, threads_per_block](device_points, device_weights, device_distances, best_index,
+                                                    device_charges, device_forces)
+
+        move[blocks, threads_per_block](device_points, best_index, device_forces, random_states)
+
+        points = device_points.copy_to_host()
+        best_point, best_value, best_index = find_best_point(points, weights, distances)
+        print(best_value)
