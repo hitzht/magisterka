@@ -3,3 +3,11 @@
 */.idea/*
 */conanbuildinfo.*
 */conaninfo.txt
+em_alg/benchmark_functions/__pycache__/*
+em_alg/__pycache__/*
+em_alg/em/__pycache__/*
+em_alg/em_discrete/__pycache__/*
+em_alg/qap/__pycache__/*
+em_alg_numba/__pycache__/*
+em_alg_numba/qap/__pycache__/*
+*/cmake-build-debug/*
