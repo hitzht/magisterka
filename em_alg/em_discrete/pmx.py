@@ -6,10 +6,10 @@ def pmx(first_permutation, second_permutation, lower, upper):
         raise RuntimeError("pmx: permutations have different size")
 
     if not 0 <= lower < len(first_permutation):
-        raise RuntimeError("pmx: lower bound is too big")
+        raise RuntimeError("pmx: lower bound is too big ", lower)
 
     if not 0 <= upper < len(first_permutation):
-        raise RuntimeError("pmx: upper bound is too big")
+        raise RuntimeError("pmx: upper bound is too big ", upper)
 
     if lower > upper:
         raise RuntimeError("pmx: lower bound is greater than upper")

@@ -12,7 +12,7 @@ def generate_permutations(permutations_count, dimension):
 
     start_permutation = list(range(dimension))
     for _ in range(permutations_count):
-        result.append(np.random.permutation(start_permutation))
+        result.append(list(np.random.permutation(start_permutation)))
 
     return result
 
@@ -59,7 +59,7 @@ def attraction_injection(permutation, surroundings, qap: QAP):
 
     for p in surroundings:
         if permutation_value >= qap.get_value(p):
-            lower, upper = get_random_range(dimension)
+            lower, upper = get_random_range(dimension - 1)
             result = pmx(p, result, lower, upper)
         else:
             result = repulsion(p, result)
