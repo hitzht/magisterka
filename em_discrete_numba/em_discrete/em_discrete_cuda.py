@@ -34,9 +34,20 @@ def em_discrete(previous_permutations: List[List[int]], next_permutations: List[
 
         cuda.syncthreads()
 
+        best_value_index = 0
+
+        for i in range(len(previous_permutations)):
+            if qap_values[best_value_index] > qap_values[i]:
+                best_value_index = i
+
+        cuda.syncthreads()
+
         # copy current permutation to next permutation
         for i in range(dimension):
             next_permutations[thread_id][i] = previous_permutations[thread_id][i]
+
+        if thread_id == best_value_index:
+            return
 
         # search surroundings
         for i in range(len(previous_permutations)):
