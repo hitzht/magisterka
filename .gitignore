@@ -11,3 +11,7 @@ em_alg/qap/__pycache__/*
 em_alg_numba/__pycache__/*
 em_alg_numba/qap/__pycache__/*
 */cmake-build-debug/*
+em_discrete_numba/__pycache__/
+em_discrete_numba/em_discrete/__pycache__/
+em_discrete_numba/qap/__pycache__/
+
