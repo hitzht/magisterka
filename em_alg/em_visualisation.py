@@ -7,6 +7,8 @@ import numpy as np
 from em.em_solver import EMSolver
 from benchmark_functions.factory import BenchmarkFactory
 
+init_points = None
+local_points = None
 
 def parse_arguments(args):
     parser = argparse.ArgumentParser(description='Script displays visualisation of electromagnetism-like algorithm')
@@ -42,58 +44,110 @@ def display_animation(function_name: 'str', points_count: int, iterations_count:
 
     solver = EMSolver(points_count, dimension, lower_bound, upper_bound, test_function.get_function())
 
-    fig, ax = plt.subplots(nrows=1, ncols=2)
-    fig.set_size_inches(10, 10, forward=True)
-    ax[0].margins(0)
-    ax[1].margins(0)
+    fig, ax = plt.subplots(nrows=1, ncols=1)
+    fig.set_size_inches(8, 8, forward=True)
 
     x = np.linspace(lower_bound[0], upper_bound[0], 1000)
     y = np.linspace(lower_bound[1], upper_bound[1], 1000)
     X, Y = np.meshgrid(x, y)
     Z = test_function.get_function()(X, Y)
 
-    area_plot = ax[0]
-    values_plot = ax[1]
+    area_plot = ax
 
-    iterations = []
-    best_values = []
-    average_values = []
+
 
     def update(num):
-        if num < iterations_count:
+        input("Press Enter to continue...")
+
+        if num == 0:
+            print("inicjalizacja")
             area_plot.clear()
+            area_plot.set_title("Inicjalizacja")
             area_plot.axis([lower_bound[0], upper_bound[0], lower_bound[1], upper_bound[1]])
             CS = area_plot.contour(X, Y, Z, 20, zorder=1, cmap='brg')
             plt.clabel(CS, inline=1, fontsize=8)
 
             area_plot.plot(local_optima[0], local_optima[1], 'bD', zorder=2)
 
-            points, forces, moved_points = solver.next_iteration()
+            init_points = solver._EMSolver__points.copy()
 
-            points = list(zip(*points))
-            area_plot.plot(points[0], points[1], 'ro', zorder=2)
+            points = list(zip(*init_points))
+            area_plot.plot(points[0], points[1], 'go', zorder=2, markersize=10)
+        elif num == 1:
+            print("local search")
+            area_plot.clear()
+            area_plot.set_title("Optymalizacja lokalna")
+            area_plot.axis([lower_bound[0], upper_bound[0], lower_bound[1], upper_bound[1]])
+            CS = area_plot.contour(X, Y, Z, 20, zorder=1, cmap='brg')
+            plt.clabel(CS, inline=1, fontsize=8)
+
+            area_plot.plot(local_optima[0], local_optima[1], 'bD', zorder=2)
+
+            init_points = solver._EMSolver__points.copy()
+
+            tmp = []
+            for p in init_points:
+                tmp.append(p.copy())
+
+            points = list(zip(*init_points))
+            area_plot.plot(points[0], points[1], 'go', zorder=2, markersize=10)
+
+            solver._EMSolver__local_search()
+
+            local_points = solver._EMSolver__points.copy()
+
+            points = list(zip(*local_points))
+            area_plot.plot(points[0], points[1], 'ro', zorder=2, markersize=10)
+
+            movement = [ (a[0] - b[0], a[1] - b[1]) for a, b in zip(local_points, tmp)]
+            movement = list(zip(*movement))
+            points = list(zip(*tmp))
+            area_plot.quiver(points[0], points[1], movement[0], movement[1], scale_units='xy', units='xy', angles='xy',
+                             scale=1, zorder=2)
+
+        elif num == 2:
+            print("calculate forces")
+
+            area_plot.clear()
+            area_plot.set_title("Obliczenie sił")
+            area_plot.axis([lower_bound[0], upper_bound[0], lower_bound[1], upper_bound[1]])
+            CS = area_plot.contour(X, Y, Z, 20, zorder=1, cmap='brg')
+            plt.clabel(CS, inline=1, fontsize=8)
+
+            area_plot.plot(local_optima[0], local_optima[1], 'bD', zorder=2)
+
+            init_points = solver._EMSolver__points.copy()
+
+            points = list(zip(*init_points))
+            area_plot.plot(points[0], points[1], 'go', zorder=2, markersize=10)
+
+            forces = solver._EMSolver__calculate_forces()
+            solver._EMSolver__move(forces)
 
             forces = list(zip(*forces))
-            area_plot.quiver(points[0], points[1], forces[0], forces[1], scale_units='xy', units='xy', angles='xy', scale=1, zorder=2)
+            area_plot.quiver(points[0], points[1], forces[0], forces[1], scale_units='xy', units='xy', angles='xy',
+                             scale=1, zorder=2)
 
-            tmp = list(zip(*moved_points))
-            area_plot.plot(tmp[0], tmp[1], 'gX', zorder=4)
+        elif num == 3:
+            print("move")
 
-            best_point = moved_points[solver.find_best_point(moved_points)]
-            best_value = test_function.get_function()(best_point)
-            average_value = sum([test_function.get_function()(point) for point in moved_points]) / points_count
+            area_plot.clear()
+            area_plot.set_title("Przesunięcie punktów")
+            area_plot.axis([lower_bound[0], upper_bound[0], lower_bound[1], upper_bound[1]])
+            CS = area_plot.contour(X, Y, Z, 20, zorder=1, cmap='brg')
+            plt.clabel(CS, inline=1, fontsize=8)
 
-            iterations.append(num)
-            best_values.append(best_value)
-            average_values.append(average_value)
+            area_plot.plot(local_optima[0], local_optima[1], 'bD', zorder=2)
 
-            values_plot.clear()
-            values_plot.axis([0, iterations_count, 0, max(max(best_values), max(average_values))])
-            values_plot.plot(iterations, best_values, 'g')
-            values_plot.plot(iterations, average_values, 'b')
+            init_points = solver._EMSolver__points.copy()
+
+            points = list(zip(*init_points))
+            area_plot.plot(points[0], points[1], 'go', zorder=2, markersize=10)
 
 
-    anim = animation.FuncAnimation(fig, update, fargs=(), interval=500, blit=False)
+
+
+    anim = animation.FuncAnimation(fig, update, fargs=(), interval=1000, blit=False)
     plt.show()
 
 

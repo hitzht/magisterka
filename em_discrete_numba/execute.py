@@ -1,21 +1,20 @@
-import sys
 import time
-from tqdm import tqdm
 from numba import cuda
 from numba.cuda.random import create_xoroshiro128p_states
-from arguments import parse_arguments
 from qap.input_file_reader import InputFileReader
 from qap.solution_file_reader import SolutionFileReader
 from qap.qap import QAP
 from em_discrete.em_discrete import generate_permutations
 from em_discrete.em_discrete_cuda import em_discrete
-from plot import plot_results
 
-if __name__ == '__main__':
-    input_file, solution_file, permutations_count, iterations, hamming_distance = parse_arguments(sys.argv[1:])
+
+def execute(input_file, solution_file, permutations_count, iterations, hamming_distance_factor):
+    #input_file, solution_file, permutations_count, iterations, hamming_distance = parse_arguments(sys.argv[1:])
 
     input_reader = InputFileReader(input_file)
     dimension, weights, distances = input_reader.read()
+
+    hamming_distance = int(dimension * hamming_distance_factor)
 
     qap = QAP(weights, distances)
 
@@ -38,6 +37,8 @@ if __name__ == '__main__':
     permutations = generate_permutations(permutations_count, dimension)
     values = [0] * permutations_count
 
+    start_time1 = time.time()
+
     previous_permutations = cuda.to_device(permutations)
     next_permutations = cuda.to_device(permutations)
     pmx_buffer = cuda.to_device(permutations)
@@ -51,10 +52,9 @@ if __name__ == '__main__':
 
     random_states = create_xoroshiro128p_states(threads_per_block * blocks, seed=time.time())
 
-    best_values = []
-    average_values = []
+    start_time2 = time.time()
 
-    for iteration in tqdm(range(iterations)):
+    for _ in range(iterations):
         em_discrete[blocks, threads_per_block](previous_permutations, next_permutations, device_values, device_weights,
                                                device_distances, hamming_distance, random_states, pmx_buffer)
 
@@ -62,15 +62,13 @@ if __name__ == '__main__':
         previous_permutations = next_permutations
         next_permutations = tmp
 
-        host_values = device_values.copy_to_host()
+    end_time2 = time.time()
 
-        best_values.append(min(host_values))
-        average_values.append(sum(host_values)/len(host_values))
+    host_values = device_values.copy_to_host()
+    end_time1 = time.time()
 
-    name = [v for v in input_file.split("/")][-1]
-    title = "{}, permutations: {}, iterations: {}, distance: {}"
-    title = title.format(name, permutations_count, iterations, hamming_distance)
+    best = min(host_values)
+    diff = (best - optimal_value)/best * 100
 
-    plot_results(optimal_value, best_values, average_values, title)
-
+    return best, round(diff, 2), round(end_time2 - start_time2, 2), round(end_time1 - start_time1, 2)
 

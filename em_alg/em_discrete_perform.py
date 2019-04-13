@@ -1,18 +1,14 @@
-import sys
-from tqdm import tqdm
+import time
 from qap.input_file_reader import InputFileReader
 from qap.solution_file_reader import SolutionFileReader
 from qap.qap import QAP
-from em_discrete.arguments import parse_arguments
 from em_discrete.em_discrete import generate_permutations, find_best_permutation, get_surroundings, attraction_injection
-from em_qap_plot import plot_results
 
 
-if __name__ == '__main__':
-    input_file, solution_file, permutations_count, iterations, distance = parse_arguments(sys.argv[1:])
-
+def execute(input_file, solution_file, permutations_count, iterations, distance_factor):
     input_reader = InputFileReader(input_file)
     dimension, weights, distances = input_reader.read()
+    distance = dimension * distance_factor
 
     qap = QAP(weights, distances)
 
@@ -34,15 +30,10 @@ if __name__ == '__main__':
 
     permutations = generate_permutations(permutations_count, dimension)
 
-    best_values = []
-    average_values = []
+    start_time = time.time()
 
-    for iteration in tqdm(range(iterations)):
+    for iteration in range(iterations):
         best_permutation, best_permutation_index, best_value = find_best_permutation(permutations, qap)
-        best_values.append(best_value)
-
-        values = [qap.get_value(p) for p in permutations]
-        average_values.append(sum(values) / len(permutations))
 
         next_permutations = []
 
@@ -57,9 +48,10 @@ if __name__ == '__main__':
 
         permutations = next_permutations
 
-    name = [v for v in input_file.split("/")][-1]
-    title = "{}, permutations: {}, iterations: {}, distance: {}"
-    title = title.format(name, permutations_count, iterations, distance)
+    end_time = time.time()
 
-    plot_results(optimal_value, best_values, average_values, title)
+    values = [qap.get_value(p) for p in permutations]
+    best = min(values)
+    diff = (best - optimal_value) / best * 100
 
+    return best, round(diff, 2), round(end_time - start_time, 2)
