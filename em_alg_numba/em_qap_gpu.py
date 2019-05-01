@@ -5,7 +5,6 @@ from typing import List
 from math import exp, sqrt
 from numba import cuda, int64, float64
 from numba.cuda.random import create_xoroshiro128p_states, xoroshiro128p_uniform_float32
-from tqdm import tqdm
 from qap.input_file_reader import InputFileReader
 from qap.solution_file_reader import SolutionFileReader
 from qap.qap import QAP
@@ -215,7 +214,7 @@ def find_best_point(points, weights, distances):
     return best_point, best_value, best_index
 
 
-def solve(input_file, solution_file, points_count, iterations, upper_bound, lower_bound, show_progress=False):
+def solve(input_file, solution_file, points_count, iterations, upper_bound, lower_bound):
     input_reader = InputFileReader(input_file)
     dimension, weights, distances = input_reader.read()
 
@@ -239,15 +238,14 @@ def solve(input_file, solution_file, points_count, iterations, upper_bound, lowe
 
     random.seed(time.time())
     start_points = initialize(points_count, dimension, lower_bound, upper_bound)
+    charges = np.zeros((points_count, 1))
+    forces = np.zeros((points_count, dimension))
 
-    r = tqdm(range(iterations)) if show_progress else range(iterations)
+    start1 = time.time()
 
     device_points = cuda.to_device(start_points)
     device_weights = cuda.to_device(weights)
     device_distances = cuda.to_device(distances)
-
-    charges = np.zeros((points_count, 1))
-    forces = np.zeros((points_count, dimension))
     device_charges = cuda.to_device(charges)
     device_forces = cuda.to_device(forces)
 
@@ -257,9 +255,9 @@ def solve(input_file, solution_file, points_count, iterations, upper_bound, lowe
 
     random_states = create_xoroshiro128p_states(threads_per_block * blocks, seed=time.time())
 
-    best_values = []
+    start2 = time.time()
 
-    for it in r:
+    for it in range(iterations):
         local_search[blocks, threads_per_block](device_points, device_weights, device_distances,
                                                 upper_bound, lower_bound, random_states)
 
@@ -275,12 +273,20 @@ def solve(input_file, solution_file, points_count, iterations, upper_bound, lowe
 
         move[blocks, threads_per_block](device_points, best_index, device_forces, random_states)
 
-        points = device_points.copy_to_host()
-        best_point, best_value, best_index = find_best_point(points, weights, distances)
+    end2 = time.time()
+    end1 = time.time()
 
-        best_values.append(best_value)
 
-    return best_values, optimal_value
+    points = device_points.copy_to_host()
+    best_point, best_value, best_index = find_best_point(points, weights, distances)
+
+    diff = (best_value - optimal_value) / best_value * 100
+
+    return best_value, round(diff, 2), round(end2 - start2, 2), round(end1 - start1, 2)
+
+
+
+
 
 if __name__ == '__main__':
     input_reader = InputFileReader("../test_instances/Chr/chr20a.dat")
