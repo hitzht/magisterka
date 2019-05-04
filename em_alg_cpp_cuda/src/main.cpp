@@ -1,18 +1,17 @@
 #include <iostream>
 
-#include "ProgramArgumentsParser.h"
-#include "InputFileReader.h"
-#include "SolutionFileReader.h"
-#include "QAP.h"
-#include "PermutationFactory.h"
-#include "gpu.hpp"
+#include "cpu/ProgramArgumentsParser.h"
+#include "cpu/InputFileReader.h"
+#include "cpu/SolutionFileReader.h"
+#include "cpu/QAP.h"
+#include "cpu/PermutationFactory.h"
+#include "gpu/gpu.hpp"
 
 int main(int argc, char** argv) {
     try {
 #ifndef USE_CUDA
         throw std::runtime_error{"CUDA is not enabled"};
 #endif
-
         ProgramArgumentsParser arguments(argc, argv);
 
         if (arguments.hasHelp()) {
@@ -42,7 +41,10 @@ int main(int argc, char** argv) {
         PermutationFactory permutationFactory{};
         auto permutations = permutationFactory.get(dimension, arguments.getPopulationSize());
 
-        auto calculatedValues = calculateOnGPU(dimension, weights, distances, permutations);
+        auto iterations = arguments.getIterationsCount();
+        auto distance = arguments.getNeighborhoodDistance();
+
+        auto calculatedValues = calculateOnGPU(dimension, iterations, distance, weights, distances, permutations);
 
         for (unsigned i = 0; i < permutations.size(); i++) {
             if (qap.getValue(permutations[i]) != calculatedValues[i]) {

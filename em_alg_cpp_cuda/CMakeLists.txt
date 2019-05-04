@@ -5,8 +5,8 @@ project(diana)
 
 option(USE_CUDA "Use CUDA" ON)
 
-file(GLOB cpu_source_files "${CMAKE_SOURCE_DIR}/src/*.cpp")
-file(GLOB gpu_source_files "${CMAKE_SOURCE_DIR}/src/*.cu")
+file(GLOB cpu_source_files "${CMAKE_SOURCE_DIR}/src/cpu/*.cpp")
+file(GLOB gpu_source_files "${CMAKE_SOURCE_DIR}/src/gpu/*.cu" "${CMAKE_SOURCE_DIR}/src/gpu/*.h")
 
 include_directories(
         libs/cxxopts/
@@ -18,13 +18,13 @@ if( ("${CMAKE_VERSION}" VERSION_EQUAL 3.8) OR
     # Modern CMake
     if(USE_CUDA)
         enable_language("CUDA")
-        add_executable(diana ${cpu_source_files} ${gpu_source_files})
+        add_executable(diana ${cpu_source_files} ${gpu_source_files} src/main.cpp)
     else(USE_CUDA)
-        add_executable(diana ${cpu_source_files})
+        add_executable(diana ${cpu_source_files} src/main.cpp)
     endif()
 else()
     # Old CMake
-    add_executable(diana ${cpu_source_files})
+    add_executable(diana ${cpu_source_files} src/main.cpp)
     if(USE_CUDA)
         find_package(CUDA 8.0)
         if(NOT CUDA_FOUND)
