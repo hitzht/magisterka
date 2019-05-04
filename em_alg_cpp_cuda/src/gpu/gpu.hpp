@@ -4,7 +4,7 @@
 #include <curand_kernel.h>
 #include "../cpu/QAPDataTypes.h"
 
-std::vector<unsigned>
+unsigned
 calculateOnGPU(unsigned dimension, unsigned iterations, unsigned distance, const Matrix<unsigned> &weights,
                const Matrix<unsigned> &distances, const std::vector<Permutation<unsigned>> &permutations);
 
@@ -16,5 +16,5 @@ void initializeRandomStates(curandState* devStates, unsigned statesCount, unsign
 
 __global__
 void emGPU(unsigned dimension, unsigned permutationsCount, unsigned distance, unsigned *weights, unsigned *distances,
-           unsigned *permutations, unsigned *values, unsigned* temporaryBuffer, curandState* randomStates);
+           unsigned *permutations, unsigned *values, unsigned* nextPermutations, unsigned* pmxBuffers, curandState* randomStates);
 

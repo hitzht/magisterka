@@ -44,15 +44,9 @@ int main(int argc, char** argv) {
         auto iterations = arguments.getIterationsCount();
         auto distance = arguments.getNeighborhoodDistance();
 
-        auto calculatedValues = calculateOnGPU(dimension, iterations, distance, weights, distances, permutations);
+        auto calculatedSolutionValue = calculateOnGPU(dimension, iterations, distance, weights, distances, permutations);
 
-        for (unsigned i = 0; i < permutations.size(); i++) {
-            if (qap.getValue(permutations[i]) != calculatedValues[i]) {
-                std::cout << "diff at permutation " << i << " " << qap.getValue(permutations[i]) << " "
-                          << calculatedValues[i] << std::endl;
-            }
-        }
-
+        std::cout << calculatedSolutionValue << " " << solutionValue << std::endl;
     } catch (std::exception& e) {
         std::cerr << e.what() << std::endl;
     }
