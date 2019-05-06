@@ -109,15 +109,15 @@ void emGPU(unsigned dimension, unsigned permutationsCount, unsigned distance, un
     unsigned currentPermutationIndex = blockDim.x * blockIdx.x + threadIdx.x;
 
     if (currentPermutationIndex < permutationsCount) {
-        auto permutation = permutations + currentPermutationIndex * dimension;
-        values[currentPermutationIndex] = qapGPU(dimension, weights, distances, permutation);
+        auto currentPermutation = permutations + currentPermutationIndex * dimension;
+        values[currentPermutationIndex] = qapGPU(dimension, weights, distances, currentPermutation);
 
         __syncthreads();
 
         // find best permutation, thread 0 works, rest is waiting
         __shared__ unsigned bestPermutationIndex;
 
-        if (currentPermutationIndex == 0) {
+        if (threadIdx.x == 0) {
             bestPermutationIndex = 0;
 
             for (unsigned j = 0; j < permutationsCount; j++) {
@@ -133,7 +133,6 @@ void emGPU(unsigned dimension, unsigned permutationsCount, unsigned distance, un
         if (currentPermutationIndex == bestPermutationIndex)
             return;
 
-        auto currentPermutation = permutations + currentPermutationIndex * dimension;
         auto pmxBuffer = pmxBuffers + currentPermutationIndex * dimension;
 
         // copy current permutation to next permutation
@@ -152,8 +151,8 @@ void emGPU(unsigned dimension, unsigned permutationsCount, unsigned distance, un
 
             if (hammingDistance(dimension, currentPermutation, sourcePermutation) < distance) {
                 if (values[permutationIndex] < values[currentPermutationIndex]) {
-                    unsigned firstBound = float(dimension - 1) * curand_uniform(curandStates + currentPermutationIndex);
-                    unsigned secondBound = float(dimension - 1) * curand_uniform(curandStates + currentPermutationIndex);
+                    unsigned firstBound = (dimension - 1) * curand_uniform(curandStates + currentPermutationIndex);
+                    unsigned secondBound = (dimension - 1) * curand_uniform(curandStates + currentPermutationIndex);
                     auto lower = MIN(firstBound, secondBound);
                     auto upper = MAX(firstBound, secondBound);
 

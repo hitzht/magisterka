@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5.1)
+cmake_minimum_required(VERSION 3.8)
 message(STATUS "CMake version: ${CMAKE_VERSION}")
 
 project(diana)
@@ -13,31 +13,12 @@ include_directories(
         /usr/local/cuda-10.1/targets/x86_64-linux/include
 )
 
-if( ("${CMAKE_VERSION}" VERSION_EQUAL 3.8) OR
-        ("${CMAKE_VERSION}" VERSION_GREATER 3.8) )
-    # Modern CMake
-    if(USE_CUDA)
-        enable_language("CUDA")
-        add_executable(diana ${cpu_source_files} ${gpu_source_files} src/main.cpp)
-    else(USE_CUDA)
-        add_executable(diana ${cpu_source_files} src/main.cpp)
-    endif()
-else()
-    # Old CMake
-    add_executable(diana ${cpu_source_files} src/main.cpp)
-    if(USE_CUDA)
-        find_package(CUDA 8.0)
-        if(NOT CUDA_FOUND)
-            message(STATUS "CUDA not found")
-            set(USE_CUDA OFF)
-        else()
-            CUDA_ADD_LIBRARY(diana_gpu ${gpu_source_files})
-            target_link_libraries(diana diana_gpu)
-        endif()
-    endif()
-endif()
+enable_language("CUDA")
 
-message(STATUS "USE_CUDA: ${USE_CUDA}")
-if(USE_CUDA)
-    add_definitions(-DUSE_CUDA)
-endif()
+add_executable(diana ${cpu_source_files} ${gpu_source_files} src/main.cpp)
+
+# Tests
+add_executable(random_cuda_test tests/random_cuda_test.cu)
+add_executable(hamming_cuda_test tests/hamming_cuda_test.cu)
+add_executable(pmx_cuda_test tests/pmx_cuda_test.cu)
+add_executable(malloc_cuda_test tests/malloc_cuda_test.cu)

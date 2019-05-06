@@ -9,9 +9,6 @@
 
 int main(int argc, char** argv) {
     try {
-#ifndef USE_CUDA
-        throw std::runtime_error{"CUDA is not enabled"};
-#endif
         ProgramArgumentsParser arguments(argc, argv);
 
         if (arguments.hasHelp()) {

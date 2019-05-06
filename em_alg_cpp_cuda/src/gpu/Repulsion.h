@@ -19,8 +19,8 @@ void repulsion(unsigned dimension, unsigned* firstPermutation, unsigned* secondP
             break;
         }
 
-        unsigned firstIndex = float(dimension - 1) * curand_uniform(randomState);
-        unsigned secondIndex = float(dimension - 1) * curand_uniform(randomState);
+        unsigned firstIndex = (dimension - 1) * curand_uniform(randomState);
+        unsigned secondIndex = (dimension - 1) * curand_uniform(randomState);
 
         auto tmp = secondPermutation[firstIndex];
         secondPermutation[firstIndex] = secondPermutation[secondIndex];
