@@ -1,7 +1,7 @@
 #include "ProgramArgumentsParser.h"
 
 ProgramArgumentsParser::ProgramArgumentsParser(int argc, char **argv):
-    options("qap_cpu", "Implementation of electromagnetic algorithm for quadratic assignment problem") {
+    options("qap_cpu", "Implementation of electromagnetic algorithm for quadratic assignment problem for CUDA platform") {
     this->addOptions();
     parseResult = std::make_unique<cxxopts::ParseResult>(options.parse(argc, argv));
 }
@@ -13,8 +13,10 @@ void ProgramArgumentsParser::addOptions() {
              cxxopts::value<std::string>())
             ("s,solution_file", "Path to file which contains optimal solution.",
              cxxopts::value<std::string>())
-            ("p,population", "Size of solutions population.",
+            ("b,blocks", "Number of cuda block.",
              cxxopts::value<unsigned>()->default_value("100"))
+            ("p,population", "Size of solutions population per cuda block.",
+             cxxopts::value<unsigned>()->default_value("1000"))
             ("i,iterations", "Number of interactions to perform.",
              cxxopts::value<unsigned>()->default_value("1000"))
             ("d,distance", "Value of solution's neighborhood distance.",
@@ -45,6 +47,10 @@ std::string ProgramArgumentsParser::getSolutionFile() {
         this->displayHelp();
         throw std::runtime_error("Missing argument: solution_file");
     }
+}
+
+unsigned ProgramArgumentsParser::getBlocks() {
+    return this->parseResult->operator[]("blocks").as<unsigned>();
 }
 
 unsigned ProgramArgumentsParser::getPopulationSize() {

@@ -1,11 +1,13 @@
 #include <iostream>
 
 #include "cpu/ProgramArgumentsParser.h"
+#include "cpu/CUDAUtils.h"
 #include "cpu/InputFileReader.h"
 #include "cpu/SolutionFileReader.h"
 #include "cpu/QAP.h"
 #include "cpu/PermutationFactory.h"
-#include "gpu/gpu.hpp"
+#include "cpu/AlgorithmInput.h"
+#include "gpu/EMAlgorithm.h"
 
 int main(int argc, char** argv) {
     try {
@@ -15,6 +17,11 @@ int main(int argc, char** argv) {
             arguments.displayHelp();
             return 0;
         }
+
+        auto blocks = arguments.getBlocks();
+        auto populationPerBlock = arguments.getPopulationSize();
+
+        CUDAUtils::checkParameters(blocks, populationPerBlock);
 
         InputFileReader reader{arguments.getInputFile()};
 
@@ -36,14 +43,23 @@ int main(int argc, char** argv) {
             throw std::runtime_error("Solution value stored in file is different than calculated");
 
         PermutationFactory permutationFactory{};
-        auto permutations = permutationFactory.get(dimension, arguments.getPopulationSize());
+        auto permutations = permutationFactory.get(dimension, blocks * populationPerBlock);
 
-        auto iterations = arguments.getIterationsCount();
-        auto distance = arguments.getNeighborhoodDistance();
+        AlgorithmInput algorithmInput{};
+        algorithmInput.blocks = blocks;
+        algorithmInput.threads = populationPerBlock;
+        algorithmInput.dimension = dimension;
+        algorithmInput.iterations = arguments.getIterationsCount();
+        algorithmInput.neighborhoodDistance = arguments.getNeighborhoodDistance();
+        algorithmInput.weights = std::move(weights);
+        algorithmInput.distances = std::move(distances);
+        algorithmInput.permutations = std::move(permutations);
 
-        auto calculatedSolutionValue = calculateOnGPU(dimension, iterations, distance, weights, distances, permutations);
+        EMAlgorithm algorithm{};
+        auto calculatedSolutionValue = algorithm.solve(algorithmInput);
 
-        std::cout << calculatedSolutionValue << " " << solutionValue << std::endl;
+        auto diff = double(calculatedSolutionValue)/double(solutionValue) * 100 - 100;
+        std::cout << calculatedSolutionValue << " " << solutionValue << " " << diff << std::endl;
     } catch (std::exception& e) {
         std::cerr << e.what() << std::endl;
     }

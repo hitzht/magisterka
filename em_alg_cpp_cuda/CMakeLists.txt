@@ -5,7 +5,7 @@ project(diana)
 
 option(USE_CUDA "Use CUDA" ON)
 
-file(GLOB cpu_source_files "${CMAKE_SOURCE_DIR}/src/cpu/*.cpp")
+file(GLOB cpu_source_files "${CMAKE_SOURCE_DIR}/src/cpu/*.cpp" "${CMAKE_SOURCE_DIR}/src/cpu/*.h")
 file(GLOB gpu_source_files "${CMAKE_SOURCE_DIR}/src/gpu/*.cu" "${CMAKE_SOURCE_DIR}/src/gpu/*.h")
 
 include_directories(

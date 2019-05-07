@@ -15,8 +15,8 @@ public:
     bool hasHelp();
     void displayHelp();
     std::string getInputFile();
-    bool hasSolutionFile();
     std::string getSolutionFile();
+    unsigned getBlocks();
     unsigned getPopulationSize();
     unsigned getIterationsCount();
     unsigned getNeighborhoodDistance();

@@ -1,4 +1,4 @@
-#include "gpu.hpp"
+#include "GPU.hpp"
 #include <iostream>
 #include <algorithm>
 #include <time.h>
@@ -15,54 +15,15 @@
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
-unsigned
-calculateOnGPU(unsigned dimension, unsigned iterations, unsigned distance, const Matrix<unsigned> &weights,
-               const Matrix<unsigned> &distances, const std::vector<Permutation<unsigned>> &permutations) {
-    auto permutationsCount = permutations.size();
+__global__
+void calculateQAPValues(unsigned dimension, unsigned permutationsCount, unsigned *weights, unsigned *distances,
+                        unsigned *permutations, unsigned *values) {
+    unsigned currentPermutationIndex = blockDim.x * blockIdx.x + threadIdx.x;
 
-    std::vector<unsigned> calculatedValues{};
-    calculatedValues.resize(permutationsCount);
-
-    curandState* randomStates;
-    auto result = cudaMalloc(&randomStates, sizeof(curandState) * permutationsCount);
-
-    if (result != cudaSuccess)
-        throw std::runtime_error("Error while allocating random states, error code: " + std::to_string(result));
-
-    unsigned long seed = time(nullptr);
-    initializeRandomStates<<<1, permutationsCount>>>(randomStates, permutationsCount, seed);
-
-    auto deviceWeights = allocateData(weights);
-    auto deviceDistances = allocateData(distances);
-    auto devicePermutations = allocateData(permutations);
-    auto deviceValues = allocateArray(permutations.size());
-    auto deviceNextPermutations = allocateArray(permutations.size() * dimension);
-    auto pmxBuffer = allocateArray(permutations.size() * dimension);
-
-    unsigned bestPermutationValue{0};
-
-    for (unsigned iteration = 0; iteration < iterations; iteration++) {
-        emGPU<<<1, permutationsCount>>>(dimension, permutationsCount, distance, deviceWeights, deviceDistances,
-                devicePermutations, deviceValues, deviceNextPermutations, pmxBuffer, randomStates);
-
-        result = cudaMemcpy(calculatedValues.data(), deviceValues, sizeof(unsigned) * permutationsCount, cudaMemcpyDeviceToHost);
-        if (result != cudaSuccess)
-            throw std::runtime_error{"Error while coping output to host, error code: " + std::to_string(result)};
-
-        bestPermutationValue = *std::min_element(calculatedValues.begin(), calculatedValues.end());
-
-        std::cout << bestPermutationValue << std::endl;
+    if (currentPermutationIndex < permutationsCount) {
+        auto currentPermutation = permutations + currentPermutationIndex * dimension;
+        values[currentPermutationIndex] = qapGPU(dimension, weights, distances, currentPermutation);
     }
-
-    cudaFree(deviceWeights);
-    cudaFree(deviceDistances);
-    cudaFree(devicePermutations);
-    cudaFree(deviceValues);
-    cudaFree(deviceNextPermutations);
-    cudaFree(randomStates);
-    cudaFree(pmxBuffer);
-
-    return bestPermutationValue;
 }
 
 unsigned* allocateData(const std::vector<std::vector<unsigned>> &data) {
@@ -103,16 +64,12 @@ void initializeRandomStates(curandState* states, unsigned statesCount, unsigned 
 }
 
 __global__
-void emGPU(unsigned dimension, unsigned permutationsCount, unsigned distance, unsigned *weights, unsigned *distances,
-           unsigned *permutations, unsigned *values, unsigned* nextPermutations, unsigned* pmxBuffers,
-           curandState* curandStates) {
+void performMovement(unsigned dimension, unsigned permutationsCount, unsigned distance, unsigned *permutations,
+                     const unsigned *values, unsigned *nextPermutations, unsigned *pmxBuffers, curandState *randomStates) {
     unsigned currentPermutationIndex = blockDim.x * blockIdx.x + threadIdx.x;
 
     if (currentPermutationIndex < permutationsCount) {
         auto currentPermutation = permutations + currentPermutationIndex * dimension;
-        values[currentPermutationIndex] = qapGPU(dimension, weights, distances, currentPermutation);
-
-        __syncthreads();
 
         // find best permutation, thread 0 works, rest is waiting
         __shared__ unsigned bestPermutationIndex;
@@ -129,9 +86,17 @@ void emGPU(unsigned dimension, unsigned permutationsCount, unsigned distance, un
 
         __syncthreads();
 
-        // do not try to improve best permutation
-        if (currentPermutationIndex == bestPermutationIndex)
+        // do not try to improve best permutation, just copy it to next array
+        if (currentPermutationIndex == bestPermutationIndex) {
+            auto nextPermutation = nextPermutations + currentPermutationIndex * dimension;
+
+            for (unsigned i = 0; i < dimension; i++) {
+                nextPermutation[i] = currentPermutation[i];
+            }
+
             return;
+        }
+
 
         auto pmxBuffer = pmxBuffers + currentPermutationIndex * dimension;
 
@@ -151,8 +116,8 @@ void emGPU(unsigned dimension, unsigned permutationsCount, unsigned distance, un
 
             if (hammingDistance(dimension, currentPermutation, sourcePermutation) < distance) {
                 if (values[permutationIndex] < values[currentPermutationIndex]) {
-                    unsigned firstBound = (dimension - 1) * curand_uniform(curandStates + currentPermutationIndex);
-                    unsigned secondBound = (dimension - 1) * curand_uniform(curandStates + currentPermutationIndex);
+                    unsigned firstBound = (dimension - 1) * curand_uniform(randomStates + currentPermutationIndex);
+                    unsigned secondBound = (dimension - 1) * curand_uniform(randomStates + currentPermutationIndex);
                     auto lower = MIN(firstBound, secondBound);
                     auto upper = MAX(firstBound, secondBound);
 
@@ -162,19 +127,22 @@ void emGPU(unsigned dimension, unsigned permutationsCount, unsigned distance, un
                         nextPermutation[j] = pmxBuffer[j];
                     }
                 } else {
-                    repulsion(dimension, sourcePermutation, nextPermutation, curandStates + currentPermutationIndex);
+                    repulsion(dimension, sourcePermutation, nextPermutation, randomStates + currentPermutationIndex);
                 }
             }
         }
-
-        __syncthreads();
-
-        // replace current permutation with improved one
-        for (unsigned j = 0; j < dimension; j++) {
-            currentPermutation[j] = nextPermutation[j];
-        }
-
-        values[currentPermutationIndex] = qapGPU(dimension, weights, distances, currentPermutation);
     }
 }
 
+__global__
+void copyPermutations(unsigned dimension, unsigned permutationsCount, unsigned *permutations, unsigned *nextPermutations) {
+    unsigned currentPermutationIndex = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (currentPermutationIndex < permutationsCount) {
+        auto currentPermutation = permutations + currentPermutationIndex * dimension;
+        auto currentnextPermutation = nextPermutations + currentPermutationIndex * dimension;
+
+        for (unsigned i = 0; i < dimension; i++)
+            currentPermutation[i] = currentnextPermutation[i];
+    }
+}
