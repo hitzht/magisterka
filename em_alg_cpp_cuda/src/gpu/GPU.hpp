@@ -19,6 +19,10 @@ void copyPermutations(unsigned dimension, unsigned permutationsCount, unsigned *
 __global__
 void initializeRandomStates(curandState* devStates, unsigned statesCount, unsigned long seed);
 
+__global__
+void findBestValue(unsigned permutationsCount, const unsigned *values, unsigned* output);
+
+
 unsigned* allocateData(const std::vector<std::vector<unsigned>> &data);
 unsigned* allocateArray(unsigned size);
 

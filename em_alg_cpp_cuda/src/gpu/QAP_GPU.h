@@ -4,7 +4,7 @@
 #include <cuda_runtime.h>
 
 __device__
-unsigned qapGPU(unsigned dimension, unsigned *weights, unsigned *distances, unsigned *permutation) {
+unsigned qapGPU(const unsigned dimension, const unsigned *weights, const unsigned *distances, const unsigned *permutation) {
     unsigned value{0};
 
     for (unsigned a = 0; a < dimension; a++) {

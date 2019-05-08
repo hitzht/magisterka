@@ -29,7 +29,6 @@ unsigned EMAlgorithm::solve(const AlgorithmInput &input) {
     auto deviceNextPermutations = allocateArray(permutationsCount * input.dimension);
     auto pmxBuffer = allocateArray(permutationsCount * input.dimension);
 
-    unsigned bestPermutationValue{0};
 
     for (unsigned iteration = 0; iteration < input.iterations; iteration++) {
         std::cout << "iter " << iteration << std::endl;
@@ -43,11 +42,17 @@ unsigned EMAlgorithm::solve(const AlgorithmInput &input) {
         copyPermutations<<<input.blocks, input.threads>>>(input.dimension, permutationsCount, devicePermutations, deviceNextPermutations);
     }
 
-    result = cudaMemcpy(calculatedValues.data(), deviceValues, sizeof(unsigned) * permutationsCount, cudaMemcpyDeviceToHost);
-    if (result != cudaSuccess)
-        throw std::runtime_error{"Error while coping output to host, error code: " + std::to_string(result)};
+    calculateQAPValues<<<input.blocks, input.threads>>>(input.dimension, permutationsCount, deviceWeights,
+            deviceDistances, devicePermutations, deviceValues);
 
-    bestPermutationValue = *std::min_element(calculatedValues.begin(), calculatedValues.end());
+    unsigned* deviceResult{nullptr};
+    cudaMalloc(&deviceResult, sizeof(unsigned));
+    findBestValue<<<1, 1>>>(permutationsCount, deviceValues, deviceResult);
+
+    unsigned bestPermutationValue{0};
+    result = cudaMemcpy(&bestPermutationValue, deviceResult, sizeof(unsigned), cudaMemcpyDeviceToHost);
+    if (result != cudaSuccess)
+        throw std::runtime_error{"Error while coping result to host, error code: " + std::to_string(result)};
 
     cudaFree(deviceWeights);
     cudaFree(deviceDistances);
@@ -56,6 +61,7 @@ unsigned EMAlgorithm::solve(const AlgorithmInput &input) {
     cudaFree(deviceNextPermutations);
     cudaFree(randomStates);
     cudaFree(pmxBuffer);
+    cudaFree(deviceResult);
 
     return bestPermutationValue;
 }

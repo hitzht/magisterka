@@ -146,3 +146,16 @@ void copyPermutations(unsigned dimension, unsigned permutationsCount, unsigned *
             currentPermutation[i] = currentnextPermutation[i];
     }
 }
+
+__global__
+void findBestValue(unsigned permutationsCount, const unsigned *values, unsigned* output) {
+    auto bestValue = values[0];
+
+    for (unsigned i = 0; i < permutationsCount; i ++) {
+        if (values[i] < bestValue) {
+            bestValue = values[i];
+        }
+    }
+
+    *output = bestValue;
+}
