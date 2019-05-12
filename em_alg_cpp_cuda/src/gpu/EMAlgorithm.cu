@@ -28,8 +28,7 @@ unsigned EMAlgorithm::solve(const AlgorithmInput &input) {
     auto deviceValues = allocateArray(permutationsCount);
     auto deviceNextPermutations = allocateArray(permutationsCount * input.dimension);
     auto pmxBuffer = allocateArray(permutationsCount * input.dimension);
-
-
+    
     for (unsigned iteration = 0; iteration < input.iterations; iteration++) {
         std::cout << "iter " << iteration << std::endl;
 
@@ -46,8 +45,11 @@ unsigned EMAlgorithm::solve(const AlgorithmInput &input) {
             deviceDistances, devicePermutations, deviceValues);
 
     unsigned* deviceResult{nullptr};
-    cudaMalloc(&deviceResult, sizeof(unsigned));
-    findBestValue<<<1, 1>>>(permutationsCount, deviceValues, deviceResult);
+    cudaMalloc(&deviceResult, input.blocks * sizeof(unsigned));
+    findBestValueInEachBlock<<<input.blocks, 1>>>(input.threads, deviceValues, deviceResult);
+
+    findBestValue<<<1, 1>>>(input.blocks, deviceResult, deviceResult);
+
 
     unsigned bestPermutationValue{0};
     result = cudaMemcpy(&bestPermutationValue, deviceResult, sizeof(unsigned), cudaMemcpyDeviceToHost);

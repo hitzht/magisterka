@@ -67,7 +67,9 @@ __global__
 void performMovement(unsigned dimension, unsigned permutationsCount, unsigned distance, unsigned *permutations,
                      const unsigned *values, unsigned *nextPermutations, unsigned *pmxBuffers, curandState *randomStates) {
     unsigned currentPermutationIndex = blockDim.x * blockIdx.x + threadIdx.x;
-
+    unsigned blockStart = blockDim.x * blockIdx.x;
+    unsigned blockEnd = blockDim.x * (blockIdx.x + 1);
+    
     if (currentPermutationIndex < permutationsCount) {
         auto currentPermutation = permutations + currentPermutationIndex * dimension;
 
@@ -77,7 +79,7 @@ void performMovement(unsigned dimension, unsigned permutationsCount, unsigned di
         if (threadIdx.x == 0) {
             bestPermutationIndex = 0;
 
-            for (unsigned j = 0; j < permutationsCount; j++) {
+            for (unsigned j = blockStart; j < blockEnd; j++) {
                 if (values[j] < values[bestPermutationIndex]) {
                     bestPermutationIndex = j;
                 }
@@ -107,7 +109,7 @@ void performMovement(unsigned dimension, unsigned permutationsCount, unsigned di
             nextPermutation[j] = currentPermutation[j];
         }
 
-        for (unsigned permutationIndex = 0; permutationIndex < permutationsCount; permutationIndex++) {
+        for (unsigned permutationIndex = blockStart; permutationIndex < blockEnd; permutationIndex++) {
             // current permutation can not improve itself
             if (permutationIndex == currentPermutationIndex)
                 continue;
@@ -148,10 +150,25 @@ void copyPermutations(unsigned dimension, unsigned permutationsCount, unsigned *
 }
 
 __global__
-void findBestValue(unsigned permutationsCount, const unsigned *values, unsigned* output) {
+void findBestValueInEachBlock(unsigned valuesPerBlock, const unsigned *values, unsigned* output) {
+    unsigned blockStart = valuesPerBlock * blockIdx.x;
+    unsigned blockEnd = valuesPerBlock * (blockIdx.x + 1);
+    auto bestValue = values[blockStart];
+
+    for (unsigned i = blockStart; i < blockEnd; i ++) {
+        if (values[i] < bestValue) {
+            bestValue = values[i];
+        }
+    }
+
+    output[blockIdx.x] = bestValue;
+}
+
+__global__
+void findBestValue(unsigned valuesCount, const unsigned *values, unsigned* output) {
     auto bestValue = values[0];
 
-    for (unsigned i = 0; i < permutationsCount; i ++) {
+    for (unsigned i = 0; i < valuesCount; i ++) {
         if (values[i] < bestValue) {
             bestValue = values[i];
         }

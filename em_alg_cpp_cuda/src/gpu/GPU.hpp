@@ -20,7 +20,10 @@ __global__
 void initializeRandomStates(curandState* devStates, unsigned statesCount, unsigned long seed);
 
 __global__
-void findBestValue(unsigned permutationsCount, const unsigned *values, unsigned* output);
+void findBestValueInEachBlock(unsigned valuesPerBlock, const unsigned *values, unsigned* output);
+
+__global__
+void findBestValue(unsigned valuesCount, const unsigned *values, unsigned* output);
 
 
 unsigned* allocateData(const std::vector<std::vector<unsigned>> &data);
