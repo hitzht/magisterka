@@ -1,13 +1,7 @@
 #include <iostream>
 
 #include "cpu/ProgramArgumentsParser.h"
-#include "cpu/CUDAUtils.h"
-#include "cpu/InputFileReader.h"
-#include "cpu/SolutionFileReader.h"
-#include "cpu/QAP.h"
-#include "cpu/PermutationFactory.h"
-#include "cpu/AlgorithmInput.h"
-#include "gpu/EMAlgorithm.h"
+#include "run.h"
 
 int main(int argc, char** argv) {
     try {
@@ -18,48 +12,17 @@ int main(int argc, char** argv) {
             return 0;
         }
 
+        auto inputFile = arguments.getInputFile();
+        auto solutionFile = arguments.getSolutionFile();
         auto blocks = arguments.getBlocks();
         auto populationPerBlock = arguments.getPopulationSize();
+        auto iterations = arguments.getIterationsCount();
+        auto neighborhood = arguments.getNeighborhoodDistance();
 
-        CUDAUtils::checkParameters(blocks, populationPerBlock);
+        auto [bestSolutionValue, bestFoundSolution] =  run(inputFile, solutionFile, blocks, populationPerBlock, iterations, neighborhood);
+        auto diffBest = bestSolutionValue != 0 ? double(bestFoundSolution)/double(bestSolutionValue) * 100 - 100 : 0;
 
-        InputFileReader reader{arguments.getInputFile()};
-
-        auto dimension = reader.getInstanceSize();
-        auto weights = reader.getWeights();
-        auto distances = reader.getDistances();
-
-        SolutionFileReader solutionReader{arguments.getSolutionFile()};
-
-        if (dimension != solutionReader.getInstanceSize())
-            throw std::runtime_error{"Solution and input have different instance size"};
-
-        auto solutionValue = solutionReader.getSolutionValue();
-        auto solution = solutionReader.getSolution();
-
-        QAP qap{weights, distances};
-
-        if (qap.getValue(solution) != solutionValue)
-            throw std::runtime_error("Solution value stored in file is different than calculated");
-
-        PermutationFactory permutationFactory{};
-        auto permutations = permutationFactory.get(dimension, blocks * populationPerBlock);
-
-        AlgorithmInput algorithmInput{};
-        algorithmInput.blocks = blocks;
-        algorithmInput.threads = populationPerBlock;
-        algorithmInput.dimension = dimension;
-        algorithmInput.iterations = arguments.getIterationsCount();
-        algorithmInput.neighborhoodDistance = arguments.getNeighborhoodDistance();
-        algorithmInput.weights = std::move(weights);
-        algorithmInput.distances = std::move(distances);
-        algorithmInput.permutations = std::move(permutations);
-
-        EMAlgorithm algorithm{};
-        auto calculatedSolutionValue = algorithm.solve(algorithmInput);
-
-        auto diff = double(calculatedSolutionValue)/double(solutionValue) * 100 - 100;
-        std::cout << calculatedSolutionValue << " " << solutionValue << " " << diff << std::endl;
+        std::cout << bestSolutionValue << " " << bestFoundSolution << " " << diffBest << std::endl;
     } catch (std::exception& e) {
         std::cerr << e.what() << std::endl;
     }

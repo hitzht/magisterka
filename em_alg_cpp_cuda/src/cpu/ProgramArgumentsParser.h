@@ -19,7 +19,7 @@ public:
     unsigned getBlocks();
     unsigned getPopulationSize();
     unsigned getIterationsCount();
-    unsigned getNeighborhoodDistance();
+    double getNeighborhoodDistance();
 
 private:
     void addOptions();

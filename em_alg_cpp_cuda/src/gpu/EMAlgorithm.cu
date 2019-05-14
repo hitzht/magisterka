@@ -30,7 +30,7 @@ unsigned EMAlgorithm::solve(const AlgorithmInput &input) {
     auto pmxBuffer = allocateArray(permutationsCount * input.dimension);
     
     for (unsigned iteration = 0; iteration < input.iterations; iteration++) {
-        std::cout << "iter " << iteration << std::endl;
+        // std::cout << "iter " << iteration << std::endl;
 
         calculateQAPValues<<<input.blocks, input.threads>>>(input.dimension, permutationsCount, deviceWeights,
                                                            deviceDistances, devicePermutations, deviceValues);

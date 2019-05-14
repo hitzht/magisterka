@@ -19,8 +19,8 @@ void ProgramArgumentsParser::addOptions() {
              cxxopts::value<unsigned>()->default_value("1000"))
             ("i,iterations", "Number of interactions to perform.",
              cxxopts::value<unsigned>()->default_value("1000"))
-            ("d,distance", "Value of solution's neighborhood distance.",
-             cxxopts::value<unsigned>()->default_value("6"));
+            ("d,distance", "Value of solution's neighborhood distance (0, 1].",
+             cxxopts::value<double>()->default_value("0.5"));
 }
 
 bool ProgramArgumentsParser::hasHelp() {
@@ -61,6 +61,11 @@ unsigned ProgramArgumentsParser::getIterationsCount() {
     return this->parseResult->operator[]("iterations").as<unsigned>();
 }
 
-unsigned ProgramArgumentsParser::getNeighborhoodDistance() {
-    return this->parseResult->operator[]("distance").as<unsigned>();
+double ProgramArgumentsParser::getNeighborhoodDistance() {
+    auto distance =  this->parseResult->operator[]("distance").as<double>();
+
+    if (distance <= 0 or distance > 1)
+        throw std::invalid_argument{"Distance must be value in nrange (0, 1]"};
+
+    return distance;
 }
