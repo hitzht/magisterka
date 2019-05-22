@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.8)
 set(CMAKE_CXX_STANDARD 17)
 
-project(diana)
+project(em)
 
 option(USE_CUDA "Use CUDA" ON)
 
@@ -15,7 +15,7 @@ include_directories(
 
 enable_language("CUDA")
 
-add_executable(diana ${cpu_source_files} ${gpu_source_files} src/main.cpp src/run.h src/run.cpp)
+add_executable(em ${cpu_source_files} ${gpu_source_files} src/main.cpp src/run.h src/run.cpp)
 
 add_executable(run_tests ${cpu_source_files} ${gpu_source_files} src/run_tests.cpp src/run.h src/run.cpp)
 

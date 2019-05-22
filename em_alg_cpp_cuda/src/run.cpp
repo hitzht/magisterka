@@ -1,4 +1,7 @@
 #include "run.h"
+#include <chrono>
+#include <iostream>
+
 #include "cpu/CUDAUtils.h"
 #include "cpu/InputFileReader.h"
 #include "cpu/SolutionFileReader.h"
@@ -7,10 +10,12 @@
 #include "cpu/AlgorithmInput.h"
 #include "gpu/EMAlgorithm.h"
 
-std::pair<unsigned, unsigned> run(const std::string& inputPath, const std::string& solutionPath,
+std::tuple<unsigned, unsigned, long> run(const std::string& inputPath, const std::string& solutionPath,
                                            unsigned blocks, unsigned populationPerBlock, unsigned iterations,
                                            double neighborhoodDistance) {
     CUDAUtils::checkParameters(blocks, populationPerBlock);
+
+    std::cout << inputPath << std::endl;
 
     InputFileReader reader{inputPath};
 
@@ -44,8 +49,13 @@ std::pair<unsigned, unsigned> run(const std::string& inputPath, const std::strin
     algorithmInput.distances = std::move(distances);
     algorithmInput.permutations = std::move(permutations);
 
+    auto firstTimeout = std::chrono::high_resolution_clock::now();
+
     EMAlgorithm algorithm{};
     auto calculatedSolutionValue = algorithm.solve(algorithmInput);
 
-    return std::make_pair(solutionValue , calculatedSolutionValue);
+    auto secondTimeout = std::chrono::high_resolution_clock::now();
+    auto durationTime = std::chrono::duration_cast<std::chrono::milliseconds>(secondTimeout - firstTimeout).count();
+
+    return std::make_tuple(solutionValue , calculatedSolutionValue, durationTime);
 }

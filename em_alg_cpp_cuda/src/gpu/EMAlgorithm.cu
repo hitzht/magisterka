@@ -39,6 +39,9 @@ unsigned EMAlgorithm::solve(const AlgorithmInput &input) {
                                                          devicePermutations, deviceValues, deviceNextPermutations, pmxBuffer, randomStates);
 
         copyPermutations<<<input.blocks, input.threads>>>(input.dimension, permutationsCount, devicePermutations, deviceNextPermutations);
+
+        localOptymalization<<<input.blocks, input.threads>>>(input.dimension, permutationsCount, devicePermutations, deviceNextPermutations, randomStates,
+                deviceWeights, deviceDistances);
     }
 
     calculateQAPValues<<<input.blocks, input.threads>>>(input.dimension, permutationsCount, deviceWeights,

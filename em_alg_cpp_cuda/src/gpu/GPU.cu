@@ -137,6 +137,34 @@ void performMovement(unsigned dimension, unsigned permutationsCount, unsigned di
 }
 
 __global__
+void localOptymalization(unsigned dimension, unsigned permutationsCount, unsigned *permutations,
+                         unsigned *nextPermutations, curandState *randomStates, unsigned *weights, unsigned *distances) {
+    unsigned currentPermutationIndex = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (currentPermutationIndex < permutationsCount) {
+        auto currentPermutation = permutations + currentPermutationIndex * dimension;
+        auto nextPermutation = nextPermutations + currentPermutationIndex * dimension;
+
+        for (unsigned i = 0; i < dimension; i++) {
+            nextPermutation[i] = currentPermutation[i];
+        }
+
+        unsigned firstPosition = (dimension - 1) * curand_uniform(randomStates + currentPermutationIndex);
+        unsigned secondPosition = (dimension - 1) * curand_uniform(randomStates + currentPermutationIndex);
+
+        auto tmp = nextPermutation[firstPosition];
+        nextPermutation[firstPosition] = nextPermutation[secondPosition];
+        nextPermutation[secondPosition] = tmp;
+
+        if (qapGPU(dimension, weights, distances, nextPermutation) < qapGPU(dimension, weights, distances, currentPermutation)) {
+            for (unsigned i = 0; i < dimension; i++) {
+                currentPermutation[i] = nextPermutation[i];
+            }
+        }
+    }
+}
+
+__global__
 void copyPermutations(unsigned dimension, unsigned permutationsCount, unsigned *permutations, unsigned *nextPermutations) {
     unsigned currentPermutationIndex = blockDim.x * blockIdx.x + threadIdx.x;
 

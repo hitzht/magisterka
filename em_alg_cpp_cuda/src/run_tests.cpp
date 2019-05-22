@@ -25,7 +25,6 @@ const std::vector<std::string> testInstances{
     "esc32d",
     "esc32e",
     "esc32g",
-    "esc32h",
     "esc64a",
     "lipa30a",
     "lipa30b",
@@ -38,7 +37,6 @@ const std::vector<std::string> testInstances{
     "sko56",
     "ste36a",
     "ste36b",
-    "ste36c",
     "tho40",
     "wil50"
 };
@@ -48,14 +46,13 @@ const std::string testsDirectory{"/home/rafal/Workspace/magisterka/test_instance
 void runTests(unsigned blocks , unsigned permutations, unsigned iterations, double neighborhoodDistance,
         unsigned testsPerInstance) {
     std::string outputFileName = "output_" + std::to_string(blocks) + "_" + std::to_string(permutations)
-            + "_" + std::to_string(iterations) + "_" + std::to_string(neighborhoodDistance) + ".txt";
+            + "_" + std::to_string(iterations) + "_" + std::to_string(int(neighborhoodDistance * 100)) + ".txt";
 
     std::ofstream output{outputFileName};
 
     if (!output.is_open()) {
         std::cerr << "could not open output file " << outputFileName << std::endl;
     }
-
 
     for (const auto& testInstance : testInstances) {
         auto inputFile = testsDirectory + testInstance + ".dat";
@@ -64,12 +61,15 @@ void runTests(unsigned blocks , unsigned permutations, unsigned iterations, doub
         unsigned bestSolution = std::numeric_limits<unsigned>::max();
         unsigned originalSolution{0};
         std::vector<unsigned> values;
+        std::vector<long> calculationTimes;
 
         try {
             for (unsigned i = 0; i < testsPerInstance; i++) {
-                auto [solutionValue, calculatedSolution] = run(inputFile, solutionFile, blocks, permutations, iterations, neighborhoodDistance);
+                auto [solutionValue, calculatedSolution, calculationTime] = run(inputFile, solutionFile, blocks,
+                        permutations, iterations, neighborhoodDistance);
                 originalSolution = solutionValue;
                 values.push_back(calculatedSolution);
+                calculationTimes.push_back(calculationTime);
 
                 if (calculatedSolution < bestSolution)
                     bestSolution = calculatedSolution;
@@ -78,9 +78,12 @@ void runTests(unsigned blocks , unsigned permutations, unsigned iterations, doub
             auto diffBest = originalSolution != 0 ? double(bestSolution)/double(originalSolution) * 100 - 100 : 0;
             auto average = static_cast<unsigned>(std::accumulate(values.begin(), values.end(), 0.0)/values.size());
             auto diffAverage = originalSolution != 0 ? double(average)/double(originalSolution) * 100 - 100 : 0;
+            auto averageTime = static_cast<unsigned>(std::accumulate(calculationTimes.begin(),
+                    calculationTimes.end(), 0.0)/calculationTimes.size());
 
-            output << testInstance << " " << originalSolution << " " << bestSolution << " " << diffBest << " "
-                   << average << " " << diffAverage << std::endl;
+            output << testInstance << " & " << originalSolution << " & " << bestSolution << " & " << unsigned(diffBest)
+                   << " & "<< average << " & " << unsigned(diffAverage) << " & " << unsigned(averageTime) << " \\\\ "
+                   << std::endl << "\\hline" << std::endl;
         } catch (std::exception& e) {
             std::cerr << "received exception: " << e.what() << std::endl;
         }
@@ -89,13 +92,12 @@ void runTests(unsigned blocks , unsigned permutations, unsigned iterations, doub
 
 int main() {
     unsigned blocks = 10;
-    unsigned permutations = 1000;
-    unsigned iterations = 10;
+    unsigned permutations = 250;
+    unsigned iterations = 100;
     double neighborhoodDistance = 0.75;
     unsigned testsPerInstance = 10;
 
     runTests(blocks, permutations, iterations, neighborhoodDistance, testsPerInstance);
-
 
     return 0;
 }

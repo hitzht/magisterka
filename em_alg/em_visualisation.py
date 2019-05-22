@@ -73,7 +73,7 @@ def display_animation(function_name: 'str', points_count: int, iterations_count:
 
             points = list(zip(*init_points))
             area_plot.plot(points[0], points[1], 'go', zorder=2, markersize=10)
-        elif num == 1:
+        elif num == 3:
             print("local search")
             area_plot.clear()
             area_plot.set_title("Optymalizacja lokalna")
@@ -105,7 +105,7 @@ def display_animation(function_name: 'str', points_count: int, iterations_count:
             area_plot.quiver(points[0], points[1], movement[0], movement[1], scale_units='xy', units='xy', angles='xy',
                              scale=1, zorder=2)
 
-        elif num == 2:
+        elif num == 1:
             print("calculate forces")
 
             area_plot.clear()
@@ -128,7 +128,7 @@ def display_animation(function_name: 'str', points_count: int, iterations_count:
             area_plot.quiver(points[0], points[1], forces[0], forces[1], scale_units='xy', units='xy', angles='xy',
                              scale=1, zorder=2)
 
-        elif num == 3:
+        elif num == 2:
             print("move")
 
             area_plot.clear()
