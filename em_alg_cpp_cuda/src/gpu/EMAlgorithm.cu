@@ -40,7 +40,7 @@ unsigned EMAlgorithm::solve(const AlgorithmInput &input) {
 
         copyPermutations<<<input.blocks, input.threads>>>(input.dimension, permutationsCount, devicePermutations, deviceNextPermutations);
 
-        localOptymalization<<<input.blocks, input.threads>>>(input.dimension, permutationsCount, devicePermutations, deviceNextPermutations, randomStates,
+        localSearch <<<input.blocks, input.threads>>>(input.dimension, permutationsCount, devicePermutations, deviceNextPermutations, randomStates,
                 deviceWeights, deviceDistances);
     }
 
@@ -53,11 +53,11 @@ unsigned EMAlgorithm::solve(const AlgorithmInput &input) {
 
     findBestValue<<<1, 1>>>(input.blocks, deviceResult, deviceResult);
 
-
     unsigned bestPermutationValue{0};
     result = cudaMemcpy(&bestPermutationValue, deviceResult, sizeof(unsigned), cudaMemcpyDeviceToHost);
-    if (result != cudaSuccess)
-        throw std::runtime_error{"Error while coping result to host, error code: " + std::to_string(result)};
+    if (result != cudaSuccess) {
+        std::cerr << "Error while coping result to host, error code: " + std::to_string(result) << std::endl;
+    }
 
     cudaFree(deviceWeights);
     cudaFree(deviceDistances);

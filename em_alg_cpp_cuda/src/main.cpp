@@ -1,5 +1,5 @@
 #include <iostream>
-
+#include <iomanip>
 #include "cpu/ProgramArgumentsParser.h"
 #include "run.h"
 
@@ -19,10 +19,10 @@ int main(int argc, char** argv) {
         auto iterations = arguments.getIterationsCount();
         auto neighborhood = arguments.getNeighborhoodDistance();
 
-        auto [bestSolutionValue, bestFoundSolution] =  run(inputFile, solutionFile, blocks, populationPerBlock, iterations, neighborhood);
+        auto [bestSolutionValue, bestFoundSolution, calculationTime] =  run(inputFile, solutionFile, blocks, populationPerBlock, iterations, neighborhood);
         auto diffBest = bestSolutionValue != 0 ? double(bestFoundSolution)/double(bestSolutionValue) * 100 - 100 : 0;
 
-        std::cout << bestSolutionValue << " " << bestFoundSolution << " " << diffBest << std::endl;
+        std::cout << bestSolutionValue << " " << bestFoundSolution << " " << std::setprecision(2) << diffBest << std::endl;
     } catch (std::exception& e) {
         std::cerr << e.what() << std::endl;
     }

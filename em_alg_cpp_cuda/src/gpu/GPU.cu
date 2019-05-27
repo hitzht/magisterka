@@ -137,8 +137,8 @@ void performMovement(unsigned dimension, unsigned permutationsCount, unsigned di
 }
 
 __global__
-void localOptymalization(unsigned dimension, unsigned permutationsCount, unsigned *permutations,
-                         unsigned *nextPermutations, curandState *randomStates, unsigned *weights, unsigned *distances) {
+void localSearch(unsigned dimension, unsigned permutationsCount, unsigned *permutations,
+                 unsigned *nextPermutations, curandState *randomStates, unsigned *weights, unsigned *distances) {
     unsigned currentPermutationIndex = blockDim.x * blockIdx.x + threadIdx.x;
 
     if (currentPermutationIndex < permutationsCount) {
@@ -161,6 +161,28 @@ void localOptymalization(unsigned dimension, unsigned permutationsCount, unsigne
                 currentPermutation[i] = nextPermutation[i];
             }
         }
+    }
+}
+
+__global__
+void permutationCheck(unsigned dimension, unsigned permutationsCount, unsigned *permutations, bool* result) {
+    unsigned currentPermutationIndex = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (currentPermutationIndex < permutationsCount) {
+        auto currentPermutation = permutations + currentPermutationIndex * dimension;
+
+        for (unsigned i = 0; i < dimension; i++) {
+            auto value = currentPermutation[i];
+
+            for (unsigned j = i + 1; j < dimension; j++) {
+                if (value == currentPermutation[j]) {
+                    result[currentPermutationIndex] = false;
+                    return;
+                }
+            }
+        }
+
+        result[currentPermutationIndex] = true;
     }
 }
 

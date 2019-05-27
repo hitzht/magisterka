@@ -5,39 +5,45 @@
 #include <limits>
 #include <algorithm>
 #include <numeric>
+#include <iomanip>
 
 #include "run.h"
 
 const std::vector<std::string> testInstances{
-    "bur26a",
-    "bur26b",
-    "bur26c",
-    "bur26d",
-    "bur26e",
-    "bur26f",
-    "bur26g",
-    "bur26h",
+//    "bur26a",
+//    "bur26b",
+//    "bur26c",
+//    "bur26d",
+//    "bur26e",
+//    "bur26f",
+//    "bur26g",
+//    "bur26h",
+//    "chr22a",
+//    "chr22b",
+//    "esc32a",
+//    "esc32b",
+//    "esc32c",
+//    "esc32d",
+//    "esc32e",
+//    "esc32g",
+//    "esc64a",
+//    "lipa30a",
+//    "lipa30b",
+//    "lipa40a",
+//    "lipa40b",
+//    "lipa50a",
+//    "lipa60a",
+//    "sko42",
+//    "sko49",
+//    "sko56",
+//    "ste36a",
+//    "ste36b",
+//    "tho40",
+//    "wil50",
+
     "chr22a",
-    "chr22b",
     "esc32a",
-    "esc32b",
-    "esc32c",
-    "esc32d",
-    "esc32e",
-    "esc32g",
-    "esc64a",
-    "lipa30a",
-    "lipa30b",
-    "lipa40a",
-    "lipa40b",
-    "lipa50a",
-    "lipa60a",
-    "sko42",
-    "sko49",
-    "sko56",
     "ste36a",
-    "ste36b",
-    "tho40",
     "wil50"
 };
 
@@ -81,9 +87,11 @@ void runTests(unsigned blocks , unsigned permutations, unsigned iterations, doub
             auto averageTime = static_cast<unsigned>(std::accumulate(calculationTimes.begin(),
                     calculationTimes.end(), 0.0)/calculationTimes.size());
 
-            output << testInstance << " & " << originalSolution << " & " << bestSolution << " & " << unsigned(diffBest)
-                   << " & "<< average << " & " << unsigned(diffAverage) << " & " << unsigned(averageTime) << " \\\\ "
-                   << std::endl << "\\hline" << std::endl;
+            output << testInstance << " & "
+                   //<< originalSolution << " & "
+                   << bestSolution << " & " << std::setprecision(2)
+                   << diffBest << " & "<< average << " & " << std::setprecision (2) << diffAverage << " & "
+                   << unsigned(averageTime) << " \\\\ " << std::endl << "\\hline" << std::endl;
         } catch (std::exception& e) {
             std::cerr << "received exception: " << e.what() << std::endl;
         }
@@ -92,12 +100,15 @@ void runTests(unsigned blocks , unsigned permutations, unsigned iterations, doub
 
 int main() {
     unsigned blocks = 10;
-    unsigned permutations = 250;
-    unsigned iterations = 100;
-    double neighborhoodDistance = 0.75;
+    unsigned permutations = 200;
+    unsigned iterations = 250;
+    double neighborhoodDistance = 0.4;
     unsigned testsPerInstance = 10;
 
-    runTests(blocks, permutations, iterations, neighborhoodDistance, testsPerInstance);
+    std::vector<double> neighborhood{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1};
+
+    for (auto value : neighborhood)
+        runTests(blocks, permutations, iterations, value, testsPerInstance);
 
     return 0;
 }
